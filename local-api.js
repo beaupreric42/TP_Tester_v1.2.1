@@ -1,0 +1,502 @@
+// ============================================================
+// TrackPush — Local API dispatcher
+// Mirrors server.js's Express routes exactly, so app.js's
+// existing api(path, opts) calls can be redirected here with
+// zero changes to its rendering/UI logic.
+// ============================================================
+
+async function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function localApi(path, opts) {
+  opts = opts || {};
+  const method = (opts.method || 'GET').toUpperCase();
+  const body = opts.body ? JSON.parse(opts.body) : {};
+  const db = loadDB();
+
+  // ---- Settings ----
+  if (path === '/api/settings' && method === 'GET') {
+    return { ...db.settings, goal: currentGoal(db), today: todayStr() };
+  }
+  if (path === '/api/settings' && method === 'PUT') {
+    if (body.goalMode !== undefined) {
+      if (!['auto', 'manual'].includes(body.goalMode)) throw new Error('mode invalide');
+      db.settings.goalMode = body.goalMode;
+    }
+    if (body.manualGoal !== undefined) {
+      const goal = parseInt(body.manualGoal, 10);
+      if (!Number.isFinite(goal) || goal <= 0) throw new Error('objectif invalide');
+      db.settings.manualGoal = goal;
+    }
+    if (body.accentColor !== undefined) {
+      if (!/^#[0-9A-Fa-f]{6}$/.test(body.accentColor)) throw new Error('couleur invalide');
+      db.settings.accentColor = body.accentColor;
+    }
+    if (body.habitOrder !== undefined) {
+      const order = body.habitOrder;
+      const orderableIds = [...HABIT_KEYS, ...(db.customHabits || []).map((c) => c.id)];
+      const isValid = Array.isArray(order) && order.length === orderableIds.length && orderableIds.every((k) => order.includes(k));
+      if (!isValid) throw new Error('ordre invalide');
+      db.settings.habitOrder = order;
+    }
+    if (body.language !== undefined) {
+      if (!['fr', 'en'].includes(body.language)) throw new Error('langue invalide');
+      db.settings.language = body.language;
+    }
+    if (body.timeFormat !== undefined) {
+      if (!['24h', '12h'].includes(body.timeFormat)) throw new Error('format invalide');
+      db.settings.timeFormat = body.timeFormat;
+    }
+    if (body.soundEnabled !== undefined) {
+      db.settings.soundEnabled = !!body.soundEnabled;
+    }
+    saveDB(db);
+    return { ...db.settings, goal: currentGoal(db) };
+  }
+
+  if (path === '/api/ranks' && method === 'GET') {
+    return { ranks: RANKS.map((r) => ({ name: r.name, min: r.min, max: r.max === Infinity ? null : r.max, goal: r.goal })) };
+  }
+
+  if (path === '/api/xp' && method === 'GET') {
+    const { xp } = computeXP(db);
+    const rank = rankForXP(xp);
+    const idx = rankIndex(rank);
+    const isMaxRank = rank.max === Infinity;
+    const progressPct = isMaxRank ? 100 : Math.min(100, ((xp - rank.min) / (rank.max + 1 - rank.min)) * 100);
+    return {
+      xp, rankName: rank.name, rankIndex: idx, rankMin: rank.min,
+      rankMax: isMaxRank ? null : rank.max,
+      nextRankName: isMaxRank ? null : RANKS[idx + 1].name,
+      progressPct, isMaxRank, goal: currentGoal(db), goalMode: db.settings.goalMode,
+    };
+  }
+
+  if (path === '/api/today' && method === 'GET') {
+    return { date: todayStr() };
+  }
+
+  // ---- Day / month ----
+  let m;
+  if ((m = path.match(/^\/api\/day\/([\d-]+)$/)) && method === 'GET') {
+    return dayPayload(db, m[1]);
+  }
+  if ((m = path.match(/^\/api\/month\/([\d-]+)$/)) && method === 'GET') {
+    const [y, mo] = m[1].split('-').map(Number);
+    const daysInMonth = new Date(y, mo, 0).getDate();
+    const days = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const total = totalForDate(db, date);
+      const goal = goalForDate(db, date);
+      let trophy = trophyForTotal(total, goal);
+      const dow = new Date(date + 'T00:00:00').getDay();
+      const weekIsPlatinum = isPlatinumWeek(db, date);
+      if (dow === 6 && weekIsPlatinum) trophy = 'platine';
+      const h = habitsForDate(db, date);
+      days[date] = {
+        total, goal, trophy,
+        inPlatinumWeek: weekIsPlatinum,
+        hasNote: db.notes.some((n) => n.date === date),
+        hasPhoto: (db.photos[date] || []).length > 0,
+        hasHabit: HABIT_KEYS.some((k) => h[k]),
+        hasBadge: badgesUnlockedForDate(db, date).length > 0,
+      };
+    }
+    return { days, goal: currentGoal(db) };
+  }
+
+  if (path === '/api/streaks' && method === 'GET') {
+    return { cannabis: streakDays(db, 'cannabis'), cafe: streakDays(db, 'cafe') };
+  }
+
+  if (path === '/api/trend' && method === 'GET') {
+    const days = 30;
+    const today = new Date(todayStr() + 'T00:00:00');
+    const points = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const ds = d.toLocaleDateString('en-CA');
+      const total = totalForDate(db, ds);
+      const goal = goalForDate(db, ds);
+      let trophy = trophyForTotal(total, goal);
+      if (d.getDay() === 6 && isPlatinumWeek(db, ds)) trophy = 'platine';
+      points.push({ date: ds, total, goal, trophy });
+    }
+    return { points };
+  }
+
+  if (path === '/api/personal-records' && method === 'GET') {
+    return {
+      bestSet: bestSetRecord(db),
+      bestDay: bestDayRecord(db),
+      bestWeek: bestWeekRecord(db),
+      bestMonth: bestMonthRecord(db),
+      bestStreakCannabis: bestStreak(db, 'cannabis'),
+      bestStreakCafe: bestStreak(db, 'cafe'),
+      bestStreakMarche: bestTrueStreak(db, 'marche'),
+      longestPlatinumStreak: longestPlatinumStreak(db),
+    };
+  }
+
+  if (path === '/api/stats' && method === 'GET') {
+    const totalPushups = db.entries.reduce((sum, e) => sum + e.count, 0);
+    const datesWithEntries = [...new Set(db.entries.map((e) => e.date))];
+    const disciplinedDays = datesWithEntries.filter((d) => {
+      const total = totalForDate(db, d), goal = goalForDate(db, d);
+      return goal > 0 && total >= goal;
+    }).length;
+    const disciplinedWeeks = countPlatinumWeeks(db);
+    const totalPhotos = Object.values(db.photos).reduce((sum, arr) => sum + arr.length, 0);
+    const totalNotes = db.notes.length;
+    const startDate = datesWithEntries.length ? datesWithEntries.sort()[0] : null;
+    return {
+      totalPushups, bestStreakCannabis: bestStreak(db, 'cannabis'), bestStreakCafe: bestStreak(db, 'cafe'),
+      bestStreakMarche: bestTrueStreak(db, 'marche'), disciplinedDays, disciplinedWeeks, totalPhotos, totalNotes, startDate,
+    };
+  }
+
+  // ---- Entries ----
+  if (path === '/api/entries' && method === 'POST') {
+    const date = body.date || todayStr();
+    const count = parseInt(body.count, 10);
+    if (!Number.isFinite(count) || count <= 0) throw new Error('nombre invalide');
+    ensureGoalSnapshot(db, date);
+    const prevTotal = totalForDate(db, date);
+    const prevGoal = goalForDate(db, date);
+    const prevTrophy = trophyForTotal(prevTotal, prevGoal);
+    const entry = { id: uuid(), date, time: date === todayStr() ? nowTimeStr() : '00:00', count, createdAt: new Date().toISOString() };
+
+    if (db.activeBoosts && db.activeBoosts.amuletteEndsAt && new Date(db.activeBoosts.amuletteEndsAt) > new Date()) {
+      entry.bonusXP = Math.round(count * (db.activeBoosts.amuletteMult - 1));
+    }
+
+    db.entries.push(entry);
+
+    const drop = attemptItemDrop(db, entry);
+    let droppedItemPayload = null;
+    if (drop) {
+      if (drop.mythic) {
+        db.mythicDiscovered[drop.itemId] = { date, sourceEntryId: entry.id };
+        const mythicDef = MYTHIC_ITEMS.find((m) => m.id === drop.itemId);
+        if (mythicDef.id === 'fragment_eternite') {
+          db.bonusXP = (db.bonusXP || 0) + mythicDef.xp;
+        } else if (mythicDef.cosmetic) {
+          if (!db.mythicActiveStates) db.mythicActiveStates = {};
+          db.mythicActiveStates[drop.itemId] = true;
+        }
+        droppedItemPayload = { itemId: drop.itemId, rarity: 'mythique', mythic: true };
+      } else {
+        const isFirstEver = !db.itemDiscoveries[drop.itemId];
+        if (isFirstEver) db.itemDiscoveries[drop.itemId] = { firstDate: date, firstSourceEntryId: entry.id };
+        if (drop.rarity === 'legendaire' && !db.firstLegendaryFound) {
+          db.firstLegendaryFound = { date, sourceEntryId: entry.id };
+        }
+        db.inventory.push({ id: uuid(), itemId: drop.itemId, rarity: drop.rarity, sourceEntryId: entry.id, foundAt: new Date().toISOString() });
+        droppedItemPayload = { itemId: drop.itemId, rarity: drop.rarity, mythic: false, firstDiscovery: isFirstEver };
+      }
+      entry.itemDrop = droppedItemPayload;
+    }
+
+    const newlyUnlockedBadges = checkAndUnlockBadges(db);
+    saveDB(db);
+    const payload = dayPayload(db, date);
+    payload.trophyJustUnlocked = prevTrophy !== payload.trophy && payload.trophy !== null;
+    payload.newlyUnlockedBadges = newlyUnlockedBadges;
+    payload.itemDrop = droppedItemPayload;
+    return payload;
+  }
+  if ((m = path.match(/^\/api\/entries\/([\w-]+)$/)) && method === 'DELETE') {
+    const entry = db.entries.find((e) => e.id === m[1]);
+    if (!entry) throw new Error('introuvable');
+
+    if (entry.itemDrop) {
+      const drop = entry.itemDrop;
+      if (drop.mythic) {
+        const rec = db.mythicDiscovered[drop.itemId];
+        if (rec && rec.sourceEntryId === entry.id) {
+          if (drop.itemId === 'fragment_eternite') {
+            const mythicDef = MYTHIC_ITEMS.find((m2) => m2.id === 'fragment_eternite');
+            db.bonusXP = Math.max(0, (db.bonusXP || 0) - mythicDef.xp);
+          } else if (db.mythicActiveStates) {
+            delete db.mythicActiveStates[drop.itemId];
+          }
+          delete db.mythicDiscovered[drop.itemId];
+        }
+      } else {
+        db.inventory = db.inventory.filter((inst) => inst.sourceEntryId !== entry.id);
+        const disc = db.itemDiscoveries[drop.itemId];
+        if (disc && disc.firstSourceEntryId === entry.id) {
+          delete db.itemDiscoveries[drop.itemId];
+        }
+        if (db.firstLegendaryFound && db.firstLegendaryFound.sourceEntryId === entry.id) {
+          delete db.firstLegendaryFound;
+        }
+      }
+    }
+
+    db.entries = db.entries.filter((e) => e.id !== m[1]);
+    relockStaleBadges(db);
+    saveDB(db);
+    const payload = dayPayload(db, entry.date);
+    payload.itemRemoved = entry.itemDrop || null;
+    return payload;
+  }
+
+  // ---- Notes ----
+  if ((m = path.match(/^\/api\/notes\/([\d-]+)$/)) && method === 'POST') {
+    const date = m[1];
+    const text = (body.text || '').trim().slice(0, 2000);
+    if (!text) throw new Error('note vide');
+    const now = new Date().toISOString();
+    const note = { id: uuid(), date, time: date === todayStr() ? nowTimeStr() : '00:00', text, moods: sanitizeMoods(body.moods), createdAt: now, updatedAt: now };
+    db.notes.push(note);
+    saveDB(db);
+    return dayPayload(db, date);
+  }
+  if ((m = path.match(/^\/api\/notes\/([\d-]+)\/([\w-]+)$/)) && method === 'PUT') {
+    const [, date, id] = m;
+    const note = db.notes.find((n) => n.id === id && n.date === date);
+    if (!note) throw new Error('introuvable');
+    const text = (body.text || '').trim().slice(0, 2000);
+    if (!text) throw new Error('note vide');
+    note.text = text;
+    if (body.moods !== undefined) note.moods = sanitizeMoods(body.moods);
+    note.updatedAt = new Date().toISOString();
+    saveDB(db);
+    return dayPayload(db, date);
+  }
+  if ((m = path.match(/^\/api\/notes\/([\d-]+)\/([\w-]+)$/)) && method === 'DELETE') {
+    const [, date, id] = m;
+    const exists = db.notes.some((n) => n.id === id && n.date === date);
+    if (!exists) throw new Error('introuvable');
+    db.notes = db.notes.filter((n) => n.id !== id);
+    saveDB(db);
+    return dayPayload(db, date);
+  }
+
+  // ---- Habits ----
+  if ((m = path.match(/^\/api\/habits\/([\d-]+)$/)) && method === 'PUT') {
+    const date = m[1];
+    const current = habitsForDate(db, date);
+    const updated = {};
+    const allKeys = [...HABIT_KEYS, ...(db.customHabits || []).map((c) => c.id)];
+    allKeys.forEach((k) => { updated[k] = body[k] !== undefined ? !!body[k] : current[k]; });
+    db.habits[date] = updated;
+    relockStaleBadges(db);
+    const newlyUnlockedBadges = checkAndUnlockBadges(db);
+    saveDB(db);
+    const payload = dayPayload(db, date);
+    payload.newlyUnlockedBadges = newlyUnlockedBadges;
+    return payload;
+  }
+
+  if (path === '/api/custom-habits' && method === 'GET') {
+    return { customHabits: db.customHabits || [] };
+  }
+  if (path === '/api/custom-habits' && method === 'POST') {
+    const name = (body.name || '').trim().slice(0, 40);
+    if (!name) throw new Error('nom requis');
+    const icon = (body.icon || '').trim().slice(0, 4);
+    const habit = { id: 'custom_' + uuid(), name, icon };
+    if (!db.customHabits) db.customHabits = [];
+    db.customHabits.push(habit);
+    healHabitOrder(db);
+    saveDB(db);
+    return { customHabits: db.customHabits, habitOrder: db.settings.habitOrder };
+  }
+  if ((m = path.match(/^\/api\/custom-habits\/([\w-]+)$/)) && method === 'DELETE') {
+    db.customHabits = (db.customHabits || []).filter((c) => c.id !== m[1]);
+    healHabitOrder(db);
+    saveDB(db);
+    return { customHabits: db.customHabits, habitOrder: db.settings.habitOrder };
+  }
+
+  // ---- Photos ----
+  if ((m = path.match(/^\/api\/photos\/([\d-]+)$/)) && method === 'POST') {
+    const date = m[1];
+    const file = opts.file;
+    if (!file) throw new Error('aucune photo recue');
+    const dataUrl = await readFileAsDataURL(file);
+    const ext = (file.name.match(/\.\w+$/) || ['.jpg'])[0];
+    const filename = `${date}-${uuid()}${ext}`;
+    await savePhotoBlob(filename, dataUrl);
+    if (!db.photos[date]) db.photos[date] = [];
+    db.photos[date].push({ filename, uploadedAt: new Date().toISOString() });
+    saveDB(db);
+    return dayPayload(db, date);
+  }
+  if ((m = path.match(/^\/api\/photos\/([\d-]+)\/(.+)$/)) && method === 'DELETE') {
+    const [, date, filename] = m;
+    const list = db.photos[date] || [];
+    const found = list.find((p) => p.filename === filename);
+    if (!found) throw new Error('introuvable');
+    db.photos[date] = list.filter((p) => p.filename !== filename);
+    await deletePhotoBlob(filename);
+    saveDB(db);
+    return dayPayload(db, date);
+  }
+
+  // ---- Badges ----
+  // ---- Inventory / Items ----
+  if (path === '/api/inventory' && method === 'GET') {
+    const items = ITEMS.map((it) => {
+      const disc = db.itemDiscoveries[it.id];
+      return {
+        id: it.id, name: it.name, minRank: it.minRank,
+        discovered: !!disc, firstDate: disc ? disc.firstDate : null,
+        stock: db.inventory.filter((inst) => inst.itemId === it.id).map((inst) => ({ id: inst.id, rarity: inst.rarity, foundAt: inst.foundAt })),
+        availableRarities: Object.keys(it.rarities),
+      };
+    });
+    const mythicItems = MYTHIC_ITEMS.map((it) => {
+      const disc = db.mythicDiscovered[it.id];
+      return {
+        id: it.id, name: it.name, minRank: it.minRank, cosmetic: !!it.cosmetic,
+        discovered: !!disc, discoveredDate: disc ? disc.date : null,
+        active: it.cosmetic ? !!(db.mythicActiveStates && db.mythicActiveStates[it.id]) : null,
+      };
+    });
+    return { items, mythicItems, activeBoosts: db.activeBoosts };
+  }
+
+  if ((m = path.match(/^\/api\/inventory\/use\/([\w-]+)$/)) && method === 'POST') {
+    const idx = db.inventory.findIndex((inst) => inst.id === m[1]);
+    if (idx === -1) throw new Error('introuvable');
+    const inst = db.inventory[idx];
+    const itemDef = ITEMS.find((it) => it.id === inst.itemId);
+    const vals = itemDef.rarities[inst.rarity];
+    let result;
+
+    if (inst.itemId === 'amulette_xp') {
+      const endsAt = new Date(Date.now() + vals.minutes * 60000).toISOString();
+      db.activeBoosts = { amuletteEndsAt: endsAt, amuletteMult: vals.mult };
+      result = { effect: 'amulette_xp', mult: vals.mult, minutes: vals.minutes, endsAt };
+    } else if (inst.itemId === 'don_xp') {
+      db.bonusXP = (db.bonusXP || 0) + vals.xp;
+      result = { effect: 'don_xp', xp: vals.xp };
+    } else if (inst.itemId === 'graine_patience') {
+      const today = todayStr();
+      const h = db.habits[today] || {};
+      let todayHabitXP = 0;
+      if (!h.cannabis) todayHabitXP += 20;
+      if (!h.cafe) todayHabitXP += 10;
+      if (h.marche) todayHabitXP += 15;
+      const bonus = Math.round(todayHabitXP * (vals.mult - 1));
+      db.bonusXP = (db.bonusXP || 0) + bonus;
+      result = { effect: 'graine_patience', bonus };
+    } else if (inst.itemId === 'plume_legere') {
+      const today = todayStr();
+      const current = goalForDate(db, today);
+      const reduced = Math.max(1, Math.round(current * (1 - vals.reduction)));
+      db.goalSnapshots[today] = reduced;
+      result = { effect: 'plume_legere', newGoal: reduced };
+    } else if (inst.itemId === 'talisman_pardon') {
+      const key = body.habitKey;
+      if (!['cannabis', 'cafe', 'marche'].includes(key)) throw new Error('habitude invalide');
+      const targetDate = body.date || todayStr();
+      if (!db.protectedHabitDays[key]) db.protectedHabitDays[key] = [];
+      if (!db.protectedHabitDays[key].includes(targetDate)) db.protectedHabitDays[key].push(targetDate);
+      result = { effect: 'talisman_pardon', habitKey: key, date: targetDate };
+    } else if (inst.itemId === 'echo_passe') {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+      const cutoffStr = cutoff.toLocaleDateString('en-CA');
+      const eligible = db.notes.filter((n) => n.date <= cutoffStr && n.text);
+      if (!eligible.length) throw new Error('aucun souvenir assez ancien');
+      const chosen = eligible[Math.floor(Math.random() * eligible.length)];
+      const moods = chosen.moods || [];
+      const positive = ['motive', 'energique', 'concentre', 'calme', 'fier'];
+      const negative = ['fatigue', 'epuise', 'stresse', 'anxieux', 'embrouille', 'emotionnel', 'colere'];
+      const hasPositive = moods.some((mm) => positive.includes(mm));
+      const hasNegative = moods.some((mm) => negative.includes(mm));
+      let framing = 'neutral';
+      if (hasPositive && hasNegative) framing = 'mixed';
+      else if (hasPositive) framing = 'positive';
+      else if (hasNegative) framing = 'negative';
+      result = { effect: 'echo_passe', note: { date: chosen.date, text: chosen.text, moods }, framing };
+    } else {
+      throw new Error('effet inconnu');
+    }
+
+    db.inventory.splice(idx, 1);
+    saveDB(db);
+    return { ok: true, result, inventory: db.inventory, xp: computeXP(db).xp };
+  }
+
+  if ((m = path.match(/^\/api\/inventory\/mythic\/([\w-]+)\/toggle$/)) && method === 'POST') {
+    const itemId = m[1];
+    const def = MYTHIC_ITEMS.find((it) => it.id === itemId);
+    if (!def || !def.cosmetic) throw new Error('objet invalide');
+    if (!db.mythicDiscovered[itemId]) throw new Error('pas encore découvert');
+    if (!db.mythicActiveStates) db.mythicActiveStates = {};
+    db.mythicActiveStates[itemId] = !db.mythicActiveStates[itemId];
+    saveDB(db);
+    return { itemId, active: db.mythicActiveStates[itemId] };
+  }
+
+  if (path === '/api/badges' && method === 'GET') {
+    checkAndUnlockBadges(db);
+    saveDB(db);
+    const testerActive = !!(db.testerMode && db.testerMode.active);
+    return {
+      badges: BADGES.map((b) => {
+        const unlocked = testerActive ? { unlockedDate: todayStr() } : db.badges[b.id];
+        const isSecretLocked = b.secret && !unlocked;
+        return {
+          id: b.id, name: b.name, desc: isSecretLocked ? null : b.desc, xp: b.xp, icon: b.icon,
+          secret: !!b.secret, unlocked: !!unlocked, unlockedDate: unlocked ? unlocked.unlockedDate : null,
+        };
+      }),
+    };
+  }
+
+  if (path === '/api/tester-mode' && method === 'GET') {
+    return { active: !!(db.testerMode && db.testerMode.active) };
+  }
+
+  if (path === '/api/tester-mode/toggle' && method === 'POST') {
+    if (!db.testerMode) db.testerMode = { active: false, snapshot: null };
+    if (!db.testerMode.active) {
+      const { testerMode, ...rest } = db;
+      const snapshot = JSON.parse(JSON.stringify(rest));
+      db.testerMode = { active: true, snapshot };
+    } else {
+      const snapshot = db.testerMode.snapshot;
+      Object.keys(db).forEach((k) => delete db[k]);
+      Object.assign(db, snapshot);
+      db.testerMode = { active: false, snapshot: null };
+    }
+    saveDB(db);
+    return { active: db.testerMode.active };
+  }
+
+  // ---- Monthly summary ----
+  if (path === '/api/monthly-summary' && method === 'GET') {
+    const startDate = earliestAnyDataDate(db);
+    const currentMonthKey = todayStr().slice(0, 7);
+    const prevMonthKey = previousMonthKey(currentMonthKey);
+    if (!startDate || monthKeyOf(startDate) >= currentMonthKey) {
+      const nMonthKey = nextMonthKey(currentMonthKey);
+      const [ny, nm] = nMonthKey.split('-').map(Number);
+      return { available: false, nextAvailableMonthKey: nMonthKey, nextAvailableMonthIndex: nm - 1, nextAvailableYear: ny };
+    }
+    const summary = computeMonthlySummary(db, prevMonthKey);
+    const shouldPopup = db.monthlySummaryAcknowledged !== prevMonthKey;
+    return { available: true, shouldPopup, summary };
+  }
+  if (path === '/api/monthly-summary/acknowledge' && method === 'POST') {
+    const currentMonthKey = todayStr().slice(0, 7);
+    db.monthlySummaryAcknowledged = previousMonthKey(currentMonthKey);
+    saveDB(db);
+    return { ok: true };
+  }
+
+  throw new Error(`Route locale inconnue: ${method} ${path}`);
+}
