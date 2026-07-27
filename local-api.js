@@ -90,19 +90,18 @@ async function localApi(path, opts) {
   if ((m = path.match(/^\/api\/month\/([\d-]+)$/)) && method === 'GET') {
     const [y, mo] = m[1].split('-').map(Number);
     const daysInMonth = new Date(y, mo, 0).getDate();
+    const lastDayStr = `${y}-${String(mo).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+    const platinumDates = datesInPlatinumWeeks(db, lastDayStr > todayStr() ? todayStr() : lastDayStr);
     const days = {};
     for (let d = 1; d <= daysInMonth; d++) {
       const date = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const total = totalForDate(db, date);
       const goal = goalForDate(db, date);
-      let trophy = trophyForTotal(total, goal);
-      const dow = new Date(date + 'T00:00:00').getDay();
-      const weekIsPlatinum = isPlatinumWeek(db, date);
-      if (dow === 6 && weekIsPlatinum) trophy = 'platine';
+      const trophy = trophyForTotal(total, goal);
       const h = habitsForDate(db, date);
       days[date] = {
         total, goal, trophy,
-        inPlatinumWeek: weekIsPlatinum,
+        inPlatinumWeek: platinumDates.has(date),
         hasNote: db.notes.some((n) => n.date === date),
         hasPhoto: (db.photos[date] || []).length > 0,
         hasHabit: HABIT_KEYS.some((k) => h[k]),
@@ -119,6 +118,8 @@ async function localApi(path, opts) {
   if (path === '/api/trend' && method === 'GET') {
     const days = 30;
     const today = new Date(todayStr() + 'T00:00:00');
+    const todayStrVal = todayStr();
+    const platinumCompletions = new Set(platinumWeekInfo(db, todayStrVal).completions);
     const points = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today);
@@ -127,7 +128,7 @@ async function localApi(path, opts) {
       const total = totalForDate(db, ds);
       const goal = goalForDate(db, ds);
       let trophy = trophyForTotal(total, goal);
-      if (d.getDay() === 6 && isPlatinumWeek(db, ds)) trophy = 'platine';
+      if (platinumCompletions.has(ds)) trophy = 'platine';
       points.push({ date: ds, total, goal, trophy });
     }
     return { points };
@@ -180,9 +181,9 @@ async function localApi(path, opts) {
 
     db.entries.push(entry);
 
-    const drop = attemptItemDrop(db, entry);
-    let droppedItemPayload = null;
-    if (drop) {
+    const drops = attemptItemDrop(db, entry);
+    const droppedItemsPayload = [];
+    drops.forEach((drop) => {
       if (drop.mythic) {
         db.mythicDiscovered[drop.itemId] = { date, sourceEntryId: entry.id };
         const mythicDef = MYTHIC_ITEMS.find((m) => m.id === drop.itemId);
@@ -192,7 +193,7 @@ async function localApi(path, opts) {
           if (!db.mythicActiveStates) db.mythicActiveStates = {};
           db.mythicActiveStates[drop.itemId] = true;
         }
-        droppedItemPayload = { itemId: drop.itemId, rarity: 'mythique', mythic: true };
+        droppedItemsPayload.push({ itemId: drop.itemId, rarity: 'mythique', mythic: true, details: mythicDef.id === 'fragment_eternite' ? { xp: mythicDef.xp } : {} });
       } else {
         const isFirstEver = !db.itemDiscoveries[drop.itemId];
         if (isFirstEver) db.itemDiscoveries[drop.itemId] = { firstDate: date, firstSourceEntryId: entry.id };
@@ -200,25 +201,36 @@ async function localApi(path, opts) {
           db.firstLegendaryFound = { date, sourceEntryId: entry.id };
         }
         db.inventory.push({ id: uuid(), itemId: drop.itemId, rarity: drop.rarity, sourceEntryId: entry.id, foundAt: new Date().toISOString() });
-        droppedItemPayload = { itemId: drop.itemId, rarity: drop.rarity, mythic: false, firstDiscovery: isFirstEver };
+        const itemDef = ITEMS.find((i) => i.id === drop.itemId);
+        droppedItemsPayload.push({ itemId: drop.itemId, rarity: drop.rarity, mythic: false, firstDiscovery: isFirstEver, details: itemDef.rarities[drop.rarity] });
       }
-      entry.itemDrop = droppedItemPayload;
-    }
+    });
+    if (droppedItemsPayload.length) entry.itemDrops = droppedItemsPayload;
 
     const newlyUnlockedBadges = checkAndUnlockBadges(db);
+    const dayResult = dayPayload(db, date);
+    let platinumJustShown = false;
+    if (dayResult.trophy === 'platine') {
+      if (!db.platinumShownDates) db.platinumShownDates = [];
+      if (!db.platinumShownDates.includes(date)) {
+        db.platinumShownDates.push(date);
+        platinumJustShown = true;
+      }
+    }
     saveDB(db);
-    const payload = dayPayload(db, date);
-    payload.trophyJustUnlocked = prevTrophy !== payload.trophy && payload.trophy !== null;
+    const payload = dayResult;
+    payload.trophyJustUnlocked = prevTrophy !== payload.trophy && payload.trophy !== null && !(payload.trophy === 'platine' && !platinumJustShown);
+    payload.platinumJustShown = platinumJustShown;
     payload.newlyUnlockedBadges = newlyUnlockedBadges;
-    payload.itemDrop = droppedItemPayload;
+    payload.itemDrops = droppedItemsPayload;
     return payload;
   }
   if ((m = path.match(/^\/api\/entries\/([\w-]+)$/)) && method === 'DELETE') {
     const entry = db.entries.find((e) => e.id === m[1]);
     if (!entry) throw new Error('introuvable');
 
-    if (entry.itemDrop) {
-      const drop = entry.itemDrop;
+    const drops = entry.itemDrops || (entry.itemDrop ? [entry.itemDrop] : []);
+    drops.forEach((drop) => {
       if (drop.mythic) {
         const rec = db.mythicDiscovered[drop.itemId];
         if (rec && rec.sourceEntryId === entry.id) {
@@ -231,7 +243,6 @@ async function localApi(path, opts) {
           delete db.mythicDiscovered[drop.itemId];
         }
       } else {
-        db.inventory = db.inventory.filter((inst) => inst.sourceEntryId !== entry.id);
         const disc = db.itemDiscoveries[drop.itemId];
         if (disc && disc.firstSourceEntryId === entry.id) {
           delete db.itemDiscoveries[drop.itemId];
@@ -240,13 +251,14 @@ async function localApi(path, opts) {
           delete db.firstLegendaryFound;
         }
       }
-    }
+    });
+    db.inventory = db.inventory.filter((inst) => inst.sourceEntryId !== entry.id);
 
     db.entries = db.entries.filter((e) => e.id !== m[1]);
     relockStaleBadges(db);
     saveDB(db);
     const payload = dayPayload(db, entry.date);
-    payload.itemRemoved = entry.itemDrop || null;
+    payload.itemsRemoved = drops;
     return payload;
   }
 
@@ -352,8 +364,9 @@ async function localApi(path, opts) {
       return {
         id: it.id, name: it.name, minRank: it.minRank,
         discovered: !!disc, firstDate: disc ? disc.firstDate : null,
-        stock: db.inventory.filter((inst) => inst.itemId === it.id).map((inst) => ({ id: inst.id, rarity: inst.rarity, foundAt: inst.foundAt })),
+        stock: db.inventory.filter((inst) => inst.itemId === it.id).map((inst) => ({ id: inst.id, rarity: inst.rarity, foundAt: inst.foundAt, details: it.rarities[inst.rarity] })),
         availableRarities: Object.keys(it.rarities),
+        allRarityDetails: it.rarities,
       };
     });
     const mythicItems = MYTHIC_ITEMS.map((it) => {
@@ -376,8 +389,11 @@ async function localApi(path, opts) {
     let result;
 
     if (inst.itemId === 'amulette_xp') {
+      if (db.activeBoosts && db.activeBoosts.amuletteEndsAt && new Date(db.activeBoosts.amuletteEndsAt) > new Date()) {
+        throw new Error('amulette_deja_active');
+      }
       const endsAt = new Date(Date.now() + vals.minutes * 60000).toISOString();
-      db.activeBoosts = { amuletteEndsAt: endsAt, amuletteMult: vals.mult };
+      db.activeBoosts = { ...(db.activeBoosts || {}), amuletteEndsAt: endsAt, amuletteMult: vals.mult };
       result = { effect: 'amulette_xp', mult: vals.mult, minutes: vals.minutes, endsAt };
     } else if (inst.itemId === 'don_xp') {
       db.bonusXP = (db.bonusXP || 0) + vals.xp;
@@ -421,6 +437,13 @@ async function localApi(path, opts) {
       else if (hasPositive) framing = 'positive';
       else if (hasNegative) framing = 'negative';
       result = { effect: 'echo_passe', note: { date: chosen.date, text: chosen.text, moods }, framing };
+    } else if (inst.itemId === 'detecteur_metal') {
+      if (db.activeBoosts && db.activeBoosts.detecteurEndsAt && new Date(db.activeBoosts.detecteurEndsAt) > new Date()) {
+        throw new Error('detecteur_deja_actif');
+      }
+      const endsAt = new Date(Date.now() + vals.minutes * 60000).toISOString();
+      db.activeBoosts = { ...(db.activeBoosts || {}), detecteurEndsAt: endsAt, detecteurBonus: vals.boost };
+      result = { effect: 'detecteur_metal', boost: vals.boost, minutes: vals.minutes, endsAt };
     } else {
       throw new Error('effet inconnu');
     }

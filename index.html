@@ -159,7 +159,7 @@
     </div>
     <form id="note-form" class="custom-form note-form">
       <textarea id="note-input" data-i18n-placeholder="note_placeholder" placeholder="Comment tu te sens? Douleurs, énergie, forme..." maxlength="2000" rows="2"></textarea>
-      <button type="submit" class="qbtn qbtn-primary" data-i18n="save_button">Sauvegarder</button>
+      <button type="submit" id="note-save-btn" class="qbtn qbtn-primary" data-i18n="save_button" hidden>Sauvegarder</button>
     </form>
     <ul id="notes-list" class="notes-list">
       <li class="empty-state" id="notes-empty" data-i18n="notes_empty">Aucune note aujourd'hui.</li>
@@ -443,6 +443,47 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="item-detail-modal" hidden>
+  <div class="modal trophy-modal rankup-modal item-detail-modal-inner">
+    <button class="modal-close" id="item-detail-close-x">×</button>
+    <div class="trophy-big rankup-icon" id="item-detail-icon">🔮</div>
+    <div class="trophy-title" id="item-detail-name">—</div>
+    <div class="ms-empty-note" id="item-detail-desc"></div>
+    <div id="item-detail-chips"></div>
+    <div class="item-detail-type-line" id="item-detail-type-picker"></div>
+    <div class="ms-empty-note" id="item-detail-desc"></div>
+    <button class="qbtn qbtn-primary" id="item-detail-use-btn" hidden data-i18n="item_detail_use_btn">Utiliser</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="amulette-conflict-modal" hidden>
+  <div class="modal">
+    <div class="trophy-big">🔮</div>
+    <div class="trophy-title" data-i18n="amulette_conflict_title">Amulette déjà active</div>
+    <div class="ms-empty-note" data-i18n="amulette_conflict_desc">Tu ne peux utiliser qu'une seule Amulette d'XP à la fois. Attends que celle en cours se termine.</div>
+    <button class="qbtn qbtn-primary" id="amulette-conflict-ok" data-i18n="amulette_conflict_ok">Ok, compris!</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="detecteur-conflict-modal" hidden>
+  <div class="modal">
+    <div class="trophy-big">📡</div>
+    <div class="trophy-title" data-i18n="detecteur_conflict_title">Détecteur déjà actif</div>
+    <div class="ms-empty-note" data-i18n="detecteur_conflict_desc">Tu ne peux utiliser qu'un seul Détecteur de métal à la fois. Attends que celui en cours se termine.</div>
+    <button class="qbtn qbtn-primary" id="detecteur-conflict-ok" data-i18n="detecteur_conflict_ok">Ok, compris!</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="undo-item-confirm-modal" hidden>
+  <div class="modal">
+    <div class="trophy-big">⚠️</div>
+    <div class="trophy-title" data-i18n="undo_item_confirm_title">Annuler cette série?</div>
+    <div class="ms-empty-note" id="undo-item-confirm-desc"></div>
+    <button class="qbtn qbtn-primary" id="undo-item-confirm-yes" data-i18n="undo_item_confirm_yes">Oui, annuler quand même</button>
+    <button class="qbtn" id="undo-item-confirm-no" data-i18n="undo_item_confirm_no">Non, garder ma série</button>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="use-item-modal" hidden>
   <div class="modal trophy-modal rankup-modal">
     <div class="trophy-big rankup-icon" id="use-item-icon">🔮</div>
@@ -498,8 +539,13 @@
         var ring = document.getElementById('ring-progress');
         ring.style.strokeDasharray = RING_CIRC;
         ring.style.strokeDashoffset = Math.max(0, RING_CIRC - pct * RING_CIRC);
-        ring.style.stroke = pct >= 1 ? 'var(--or)' : (pct >= 0.8 ? 'var(--argent)' : 'var(--fire)');
-        if (pct >= 1) ring.classList.add('ring-complete');
+        if (snap.trophy === 'platine'){
+          ring.style.stroke = 'var(--platine-a)';
+          ring.classList.add('ring-platine');
+        } else {
+          ring.style.stroke = pct >= 1 ? 'var(--or)' : (pct >= 0.8 ? 'var(--argent)' : 'var(--fire)');
+          if (pct >= 1) ring.classList.add('ring-complete');
+        }
       }
       if (snap.rankName) document.getElementById('xp-rank-name').textContent = snap.rankName;
       if (snap.dateText) document.getElementById('today-date').textContent = snap.dateText;

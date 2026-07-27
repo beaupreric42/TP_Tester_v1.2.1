@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-25.92';
+const APP_VERSION = '2026-07-26.00';
 
 const state = {
   today: null,
@@ -204,32 +204,54 @@ const TRANSLATIONS = {
     item_drop_title: "OBJET TROUVÉ!",
     item_drop_title_mythique: "OBJET MYTHIQUE!!!",
     item_use_btn: "Utiliser",
-    item_rank_locked: "Débloqué au rang {rank}",
+    item_rank_locked: "Déblocable au rang {rank}",
+    item_detail_use_btn: "Utiliser",
+    item_detail_type_label: "Type:",
+    item_detail_pick_type_prompt: "Choisis un type ci-dessus pour voir les détails.",
+    amulette_conflict_title: "Amulette déjà active",
+    amulette_conflict_desc: "Tu ne peux utiliser qu'une seule Amulette d'XP à la fois. Attends que celle en cours se termine.",
+    amulette_conflict_ok: "Ok, compris!",
+    detecteur_conflict_title: "Détecteur déjà actif",
+    detecteur_conflict_desc: "Tu ne peux utiliser qu'un seul Détecteur de métal à la fois. Attends que celui en cours se termine.",
+    detecteur_conflict_ok: "Ok, compris!",
+    use_item_detecteur_result: "Chances d'objet augmentées de {pct}% pendant {minutes} minutes!",
+    undo_item_confirm_title: "Annuler cette série?",
+    undo_item_confirm_desc: "Cette série t'a donné {item}. Annuler la série va aussi retirer cet objet de ton inventaire.",
+    undo_item_confirm_yes: "Oui, annuler quand même",
+    undo_item_confirm_no: "Non, garder ma série",
     item_name_plume_legere: "Plume légère",
     item_name_amulette_xp: "Amulette d'XP",
     item_name_don_xp: "Don d'XP",
     item_name_graine_patience: "Graine de patience",
     item_name_talisman_pardon: "Talisman du pardon",
     item_name_echo_passe: "Écho du passé",
+    item_name_detecteur_metal: "Détecteur de métal",
     item_name_fragment_eternite: "Fragment d'Éternité",
     item_name_toucher_divin: "Toucher du divin",
     item_name_poussiere_etoiles: "Poussière d'étoiles",
     item_name_calendrier_celeste: "Calendrier céleste",
     item_name_echo_dore: "Écho doré",
     item_name_mode_arcenciel: "Mode arc-en-ciel",
-    item_desc_plume_legere: "Réduit ton objectif de push-ups d'aujourd'hui.",
-    item_desc_amulette_xp: "Multiplie l'XP de tes push-ups pendant un temps limité.",
-    item_desc_don_xp: "Accorde instantanément de l'XP.",
-    item_desc_graine_patience: "Double (ou plus) l'XP de tes habitudes d'aujourd'hui.",
+    item_desc_plume_legere: "Réduit ton objectif de push-ups d'aujourd'hui de {pct}%.",
+    item_desc_amulette_xp: "Multiplie l'XP de tes push-ups par ×{mult} pendant {minutes} minutes.",
+    item_desc_don_xp: "Accorde instantanément {xp} XP.",
+    item_desc_graine_patience: "Multiplie l'XP de tes habitudes d'aujourd'hui par ×{mult}.",
     item_desc_talisman_pardon: "Protège le compteur d'une habitude pour une journée manquée, sans jamais changer ton historique réel.",
-    item_desc_echo_passe: "Fait ressurgir un souvenir d'il y a longtemps.",
+    item_desc_echo_passe: "Fait ressurgir un souvenir d'il y a longtemps. Déblocable après 30 jours d'utilisation de l'app.",
+    item_desc_detecteur_metal: "Pendant {minutes} minutes, augmente tes chances de {pct}% de trouver un objet en faisant des séries de push-ups. Ne touche pas aux objets Mythiques.",
     item_desc_fragment_eternite: "Un fragment d'un accomplissement immense — +2000 XP, une fois dans toute ta vie.",
     item_desc_toucher_divin: "Un halo doré permanent autour de ta barre d'XP. Activable et désactivable à volonté.",
+    item_drop_detail_reduction: "Réduit ton objectif de {pct}%",
+    item_drop_detail_amulette: "×{mult} XP pendant {minutes} minutes",
+    item_drop_detail_mult: "×{mult} bonus",
+    item_drop_detail_xp: "+{xp} XP instantané",
+    item_drop_detail_protect: "Protège ta séquence sans la fausser",
+    item_drop_detail_echo: "Fait ressurgir un souvenir",
     item_desc_poussiere_etoiles: "Change la couleur des étincelles d'XP pour un argent/violet scintillant.",
     item_desc_calendrier_celeste: "Tes journées Or au calendrier scintillent d'un dégradé or et bleu nuit.",
     item_desc_echo_dore: "Appuie sur TrackPush pour jouer une mélodie qui t'appartient.",
     item_desc_mode_arcenciel: "Ta couleur d'accent défile lentement à travers toutes les teintes de l'arc-en-ciel. Toucher du divin l'emporte si les deux sont actifs.",
-    rarity_basique: "Basique",
+    rarity_basique: "Commun",
     rarity_rare: "Rare",
     rarity_epique: "Épique",
     rarity_legendaire: "Légendaire",
@@ -286,7 +308,7 @@ const TRANSLATIONS = {
     trophy_desc_bronze: "50% de l'objectif atteint aujourd'hui. Ça chauffe!",
     trophy_desc_argent: "80% atteint. Presque là!",
     trophy_desc_or: "Objectif du jour complété à 100%!",
-    trophy_desc_platine: "Semaine parfaite — 100%+ chaque jour du dimanche au samedi!",
+    trophy_desc_platine: "Semaine parfaite – Objectif atteint pendant 7 jours consécutifs. Continue d'alimenter cette motivation!",
     trophy_title: "TROPHÉE {name}!",
     reset_default: "—",
     monthly_summary_title: "RÉSUMÉ MENSUEL",
@@ -437,32 +459,54 @@ const TRANSLATIONS = {
     item_drop_title: "ITEM FOUND!",
     item_drop_title_mythique: "MYTHIC ITEM!!!",
     item_use_btn: "Use",
-    item_rank_locked: "Unlocked at rank {rank}",
+    item_rank_locked: "Unlockable at rank {rank}",
+    item_detail_use_btn: "Use",
+    item_detail_type_label: "Type:",
+    item_detail_pick_type_prompt: "Pick a type above to see the details.",
+    amulette_conflict_title: "Amulet already active",
+    amulette_conflict_desc: "You can only use one XP Amulet at a time. Wait for the current one to end.",
+    amulette_conflict_ok: "Got it!",
+    detecteur_conflict_title: "Detector already active",
+    detecteur_conflict_desc: "You can only use one Metal Detector at a time. Wait for the current one to end.",
+    detecteur_conflict_ok: "Got it!",
+    use_item_detecteur_result: "Item chances increased by {pct}% for {minutes} minutes!",
+    undo_item_confirm_title: "Undo this set?",
+    undo_item_confirm_desc: "This set gave you {item}. Undoing it will also remove that item from your inventory.",
+    undo_item_confirm_yes: "Yes, undo anyway",
+    undo_item_confirm_no: "No, keep my set",
     item_name_plume_legere: "Light Feather",
     item_name_amulette_xp: "XP Amulet",
     item_name_don_xp: "XP Gift",
     item_name_graine_patience: "Seed of Patience",
     item_name_talisman_pardon: "Talisman of Forgiveness",
     item_name_echo_passe: "Echo of the Past",
+    item_name_detecteur_metal: "Metal Detector",
     item_name_fragment_eternite: "Fragment of Eternity",
     item_name_toucher_divin: "Touch of the Divine",
     item_name_poussiere_etoiles: "Stardust",
     item_name_calendrier_celeste: "Celestial Calendar",
     item_name_echo_dore: "Golden Echo",
     item_name_mode_arcenciel: "Rainbow Mode",
-    item_desc_plume_legere: "Reduces today's push-up goal.",
-    item_desc_amulette_xp: "Multiplies your push-up XP for a limited time.",
-    item_desc_don_xp: "Instantly grants XP.",
-    item_desc_graine_patience: "Doubles (or more) today's habit XP.",
+    item_desc_plume_legere: "Reduces today's push-up goal by {pct}%.",
+    item_desc_amulette_xp: "Multiplies your push-up XP by ×{mult} for {minutes} minutes.",
+    item_desc_don_xp: "Instantly grants {xp} XP.",
+    item_desc_graine_patience: "Multiplies today's habit XP by ×{mult}.",
     item_desc_talisman_pardon: "Protects a habit's streak counter for a missed day, without ever changing your real history.",
-    item_desc_echo_passe: "Brings back a memory from long ago.",
+    item_desc_echo_passe: "Brings back a memory from long ago. Unlockable after 30 days of app use.",
+    item_desc_detecteur_metal: "For {minutes} minutes, increases your chances by {pct}% of finding an item from push-up sets. Doesn't affect Mythic items.",
     item_desc_fragment_eternite: "A fragment of something immense — +2000 XP, once in a lifetime.",
     item_desc_toucher_divin: "A permanent golden glow around your XP bar. Can be turned on and off anytime.",
+    item_drop_detail_reduction: "Reduces your goal by {pct}%",
+    item_drop_detail_amulette: "×{mult} XP for {minutes} minutes",
+    item_drop_detail_mult: "×{mult} bonus",
+    item_drop_detail_xp: "+{xp} instant XP",
+    item_drop_detail_protect: "Protects your streak without faking it",
+    item_drop_detail_echo: "Brings back a memory",
     item_desc_poussiere_etoiles: "Changes your XP sparkles into shimmering silver and purple.",
     item_desc_calendrier_celeste: "Your Gold calendar days shimmer with a gold and midnight-blue gradient.",
     item_desc_echo_dore: "Tap TrackPush to play a melody that's yours alone.",
     item_desc_mode_arcenciel: "Your accent color slowly cycles through every hue of the rainbow. Touch of the Divine takes priority if both are active.",
-    rarity_basique: "Basic",
+    rarity_basique: "Common",
     rarity_rare: "Rare",
     rarity_epique: "Epic",
     rarity_legendaire: "Legendary",
@@ -519,7 +563,7 @@ const TRANSLATIONS = {
     trophy_desc_bronze: "50% of today's goal reached. Heating up!",
     trophy_desc_argent: "80% reached. Almost there!",
     trophy_desc_or: "Today's goal fully completed!",
-    trophy_desc_platine: "Perfect week — 100%+ every day from Sunday to Saturday!",
+    trophy_desc_platine: "Perfect week – Goal reached for 7 consecutive days. Keep feeding that motivation!",
     trophy_title: "{name} TROPHY!",
     reset_default: "—",
     monthly_summary_title: "MONTHLY SUMMARY",
@@ -573,7 +617,7 @@ const BADGE_TRANSLATIONS_EN = {
   decafeine: { name: 'Decaf!', desc: 'A full month (30 consecutive days) caffeine-free' },
   clarte: { name: 'Clarity of Mind', desc: 'A full month (30 consecutive days) drug-free' },
   brillant: { name: 'Brilliant!', desc: 'First perfect week (Platinum trophy)' },
-  motivation100: { name: '100 Motivation?', desc: '100 days of discipline (Gold trophy or better)' },
+  motivation100: { name: '100 Motivation?', desc: 'Reach Gold for 100 days total' },
   'cadeau-noel': { name: 'A Big Gift for the Pecs', desc: '250 push-ups on December 25th' },
   consistance: { name: 'Consistency Pays Off', desc: '50 push-ups in a single set' },
   'rank-discipline': { name: 'Disciplined Rank', desc: 'Reach the Disciplined rank' },
@@ -588,10 +632,17 @@ const BADGE_TRANSLATIONS_EN = {
   'force-tot': { name: 'Early Bird!', desc: '150 push-ups between 6am and noon, same day' },
   'oiseau-nuit': { name: 'Night Owl', desc: '50 push-ups between midnight and 4am, same night' },
   'resolution-nouvel-an': { name: "New Year's Resolution", desc: '100 push-ups on January 1st' },
-  'mille-en-cinq': { name: '1000 in 5', desc: 'At least 200 push-ups per day, 5 days in a row' },
-  'semaine-promenades': { name: 'Walking Week', desc: 'Walk outside, 7 days in a row' },
+  'mille-en-cinq': { name: '1000 in 5', desc: 'Do 1000 total push-ups over 5 consecutive days' },
+  'semaine-promenades': { name: 'Walking Week', desc: 'Take a walk outside for 7 consecutive days' },
   'je-note': { name: 'I NOTE!', desc: '100 notes added in total' },
-  'top-modele': { name: 'Top Model', desc: '30 photos added in total' },
+  'top-modele': { name: 'Top Model', desc: '10 photos added in total' },
+  'premier-tresor': { name: 'First Treasure', desc: 'Find your very first item' },
+  'petit-coffre': { name: 'Small Chest', desc: 'Discover 3 different items' },
+  'grand-collectionneur': { name: 'Great Collector', desc: 'Discover every existing item' },
+  'legendaire-badge': { name: 'Legendary!', desc: "Unlock an item's legendary version for the first time" },
+  'impossible-devient-reel': { name: 'The Impossible Becomes Real', desc: 'Find your very first Mythic item' },
+  'plein-dans-le-mille': { name: 'Right on Target!', desc: 'Do 1000 total push-ups' },
+  'over-9000': { name: "It's over 9000!", desc: 'Do 10,000 total push-ups' },
 };
 function translateBadge(id, name, desc){
   if (state.lang !== 'en') return { name, desc };
@@ -621,6 +672,7 @@ const ITEM_META = {
   graine_patience: { icon: '🌱' },
   talisman_pardon: { icon: '🙏' },
   echo_passe: { icon: '📔' },
+  detecteur_metal: { icon: '📡' },
   fragment_eternite: { icon: '💠' },
   toucher_divin: { icon: '✨' },
   poussiere_etoiles: { icon: '🌠' },
@@ -719,15 +771,17 @@ function easeOutCubic(x){
   return 1 - Math.pow(1 - x, 3);
 }
 
-function updateRing(total, goal){
+function updateRing(total, goal, trophy){
   const pct = Math.min(1, goal > 0 ? total / goal : 0);
   const ring = $('#ring-progress');
   ring.style.strokeDasharray = RING_CIRC;
 
-  if (pct >= 1) ring.style.stroke = 'var(--or)';
+  if (trophy === 'platine') ring.style.stroke = 'var(--platine-a)';
+  else if (pct >= 1) ring.style.stroke = 'var(--or)';
   else if (pct >= 0.8) ring.style.stroke = 'var(--argent)';
   else ring.style.stroke = 'var(--fire)';
-  ring.classList.toggle('ring-complete', pct >= 1);
+  ring.classList.toggle('ring-complete', pct >= 1 && trophy !== 'platine');
+  ring.classList.toggle('ring-platine', trophy === 'platine');
 
   const from = state.ringVisualPct || 0;
   const to = pct;
@@ -1001,11 +1055,39 @@ function showBadgeModal(badge){
   playCelebrationSound('badge');
 }
 
+function rarityLabelHtml(rarity){
+  return `<span class="rarity-label rarity-${rarity}">${t('rarity_' + rarity)}</span>`;
+}
+
+function detailPlaceholders(details){
+  const ph = {};
+  if (!details) return ph;
+  if (details.reduction !== undefined) ph.pct = Math.round(details.reduction * 100);
+  if (details.boost !== undefined) ph.pct = Math.round(details.boost * 100);
+  if (details.mult !== undefined) ph.mult = details.mult;
+  if (details.minutes !== undefined) ph.minutes = details.minutes;
+  if (details.xp !== undefined) ph.xp = details.xp;
+  return ph;
+}
+
+function formatItemDetailsMessage(details){
+  if (!details) return '';
+  if (details.reduction !== undefined) return t('item_drop_detail_reduction', { pct: Math.round(details.reduction * 100) });
+  if (details.mult !== undefined && details.minutes !== undefined) return t('item_drop_detail_amulette', { mult: details.mult, minutes: details.minutes });
+  if (details.mult !== undefined) return t('item_drop_detail_mult', { mult: details.mult });
+  if (details.xp !== undefined) return t('item_drop_detail_xp', { xp: details.xp });
+  if (details.protect) return t('item_drop_detail_protect');
+  if (details.echo) return t('item_drop_detail_echo');
+  return '';
+}
+
 function showItemDropModal(item){
   const meta = ITEM_META[item.itemId] || { icon: '❔' };
   $('#item-drop-icon').textContent = meta.icon;
   $('#item-drop-name').textContent = t(`item_name_${item.itemId}`);
-  $('#item-drop-desc').textContent = `${t('rarity_' + item.rarity)} — ${t(`item_desc_${item.itemId}`)}`;
+  const typeLine = `${t('item_detail_type_label')} ${rarityLabelHtml(item.rarity)}`;
+  const desc = t(`item_desc_${item.itemId}`, detailPlaceholders(item.details));
+  $('#item-drop-desc').innerHTML = `${typeLine}<div class="ms-empty-note" style="margin-top:4px;">${escapeHtml(desc)}</div>`;
   $('#item-drop-rarity-label').textContent = item.mythic ? t('item_drop_title_mythique') : t('item_drop_title');
   $('#item-drop-modal').hidden = false;
   const colors = item.mythic ? ['#FFFFFF','#F5B942','#9FD8FF','#FF6EC7'] : ['#F5B942', state.accentColor, '#FFFFFF'];
@@ -1180,9 +1262,9 @@ function checkEveningReminder(day){
 function renderDay(day){
   $('#today-total').textContent = day.total;
   $('#today-total').classList.toggle('big-number-4digits', String(day.total).length >= 4);
-  updateRing(day.total, day.goal);
+  updateRing(day.total, day.goal, day.trophy);
   if (day.date === state.today){
-    cacheDisplaySnapshot({ total: day.total, goal: day.goal });
+    cacheDisplaySnapshot({ total: day.total, goal: day.goal, trophy: day.trophy });
   }
 
   const chip = $('#today-trophy');
@@ -1306,24 +1388,47 @@ async function addReps(count){
   pulseRing();
   renderDay(day);
   checkEveningReminder(day);
+  const badges = day.newlyUnlockedBadges || [];
+  badges.forEach((b) => enqueueCelebration({ type:'badge', badge:b }));
   await refreshXP();
   invalidateCalendarCache();
   spawnXPSparkles(count);
-  const badges = day.newlyUnlockedBadges || [];
-  badges.forEach((b) => enqueueCelebration({ type:'badge', badge:b }));
   if (day.trophyJustUnlocked){
     enqueueCelebration({ type:'trophy', trophy: day.trophy });
   }
-  if (day.itemDrop){
-    enqueueCelebration({ type:'item', item: day.itemDrop });
-  }
+  (day.itemDrops || []).forEach((item) => {
+    enqueueCelebration({ type:'item', item });
+  });
+}
+
+function showUndoItemConfirm(itemName){
+  return new Promise((resolve) => {
+    $('#undo-item-confirm-desc').textContent = t('undo_item_confirm_desc', { item: itemName });
+    $('#undo-item-confirm-modal').hidden = false;
+    const yesBtn = $('#undo-item-confirm-yes');
+    const noBtn = $('#undo-item-confirm-no');
+    const cleanup = () => {
+      $('#undo-item-confirm-modal').hidden = true;
+      yesBtn.removeEventListener('click', onYes);
+      noBtn.removeEventListener('click', onNo);
+    };
+    const onYes = () => { cleanup(); resolve(true); };
+    const onNo = () => { cleanup(); resolve(false); };
+    yesBtn.addEventListener('click', onYes);
+    noBtn.addEventListener('click', onNo);
+  });
 }
 
 async function undoLast(){
   const day = await api(`/api/day/${state.today}`);
   if (day.entries.length === 0) return;
   const last = day.entries[day.entries.length - 1];
-  if (last.itemDrop && last.itemDrop.firstDiscovery && !confirm(t('undo_item_warning'))) return;
+  const drops = last.itemDrops || (last.itemDrop ? [last.itemDrop] : []);
+  if (drops.length){
+    const itemNames = drops.map((d) => t(`item_name_${d.itemId}`)).join(', ');
+    const proceed = await showUndoItemConfirm(itemNames);
+    if (!proceed) return;
+  }
   const updated = await api(`/api/entries/${last.id}`, { method:'DELETE' });
   renderDay(updated);
   checkEveningReminder(updated);
@@ -1839,7 +1944,8 @@ async function loadBadges(){
   const data = await api('/api/badges');
   const grid = $('#badges-grid');
   grid.innerHTML = '';
-  data.badges.forEach((b) => {
+  const sorted = data.badges.slice().sort((a, b) => (a.secret ? 1 : 0) - (b.secret ? 1 : 0));
+  sorted.forEach((b) => {
     const card = document.createElement('div');
     card.className = 'badge-card' + (b.unlocked ? '' : ' locked');
     const dateLabel = b.unlockedDate ? formatShortDate(b.unlockedDate) : '';
@@ -1926,13 +2032,14 @@ function closeInventory(){
 
 async function loadInventory(){
   const data = await api('/api/inventory');
+  state.lastInventoryData = data;
   const grid = $('#inventory-grid');
   grid.innerHTML = data.items.map((it) => renderInventoryCard(it)).join('');
   const mgrid = $('#mythic-grid');
   mgrid.innerHTML = data.mythicItems.map((it) => renderMythicCard(it)).join('');
 
-  grid.querySelectorAll('.inventory-item.available').forEach((el) => {
-    el.addEventListener('click', () => openUseItemPicker(el.dataset.itemId, el.dataset.instanceId, el.dataset.rarity));
+  grid.querySelectorAll('.inventory-item.discovered').forEach((el) => {
+    el.addEventListener('click', () => openItemDetail(el.dataset.itemId));
   });
   mgrid.querySelectorAll('.inventory-item[data-toggle]').forEach((el) => {
     el.addEventListener('click', () => toggleMythic(el.dataset.mythicId));
@@ -1948,15 +2055,14 @@ function renderInventoryCard(it){
   const cls = ['inventory-item'];
   if (it.discovered) cls.push('discovered');
   if (hasStock) cls.push('available');
-  const topStock = hasStock ? it.stock[0] : null;
   const qtyBadge = hasStock && it.stock.length > 1 ? `<div class="inv-qty">×${it.stock.length}</div>` : '';
   const rankLabel = !it.discovered ? `<div class="inv-rank-lock">${t('item_rank_locked', { rank: translateRankName(RANK_NAMES_FOR_ITEMS[it.minRank]) })}</div>` : '';
   return `
-    <div class="${cls.join(' ')}" ${hasStock ? `data-item-id="${it.id}" data-instance-id="${topStock.id}" data-rarity="${topStock.rarity}"` : ''}>
+    <div class="${cls.join(' ')}" ${it.discovered ? `data-item-id="${it.id}"` : ''}>
       ${qtyBadge}
       <div class="inv-icon">${iconMeta.icon}</div>
       <div class="inv-name">${name}</div>
-      ${it.discovered && hasStock ? `<div class="inv-rank-lock">${t('rarity_' + topStock.rarity)}</div>` : ''}
+      ${it.discovered && hasStock ? `<div class="inv-rarity-row">${rarityLabelHtml(it.stock[0].rarity)}</div>` : ''}
       ${it.discovered && !hasStock ? `<div class="inv-rank-lock">${t('inventory_empty_stock')}</div>` : ''}
       ${rankLabel}
     </div>
@@ -2006,6 +2112,91 @@ function applyMythicCosmetic(itemId, active){
   state.mythicActive[itemId] = !!active;
 }
 
+function renderItemTypeAndDesc(itemId, rarity, details){
+  $('#item-detail-type-picker').innerHTML = rarity
+    ? `${t('item_detail_type_label')} ${rarityLabelHtml(rarity)}`
+    : '';
+  $('#item-detail-desc').textContent = rarity
+    ? t(`item_desc_${itemId}`, detailPlaceholders(details))
+    : t('item_detail_pick_type_prompt');
+}
+
+function openItemDetail(itemId){
+  const data = state.lastInventoryData;
+  const it = data && data.items.find((i) => i.id === itemId);
+  if (!it) return;
+  state.selectedItemId = itemId;
+  state.selectedItemInstance = null;
+  $('#item-detail-icon').textContent = (ITEM_META[itemId] || { icon: '❔' }).icon;
+  $('#item-detail-name').textContent = t(`item_name_${itemId}`);
+  const chipsBox = $('#item-detail-chips');
+  const useBtn = $('#item-detail-use-btn');
+  const stock = it.stock || [];
+  const allRarities = it.allRarityDetails || {};
+
+  if (stock.length === 0){
+    chipsBox.innerHTML = '';
+    const referenceRarity = Object.keys(allRarities)[0];
+    renderItemTypeAndDesc(itemId, referenceRarity, allRarities[referenceRarity]);
+    useBtn.hidden = true;
+  } else if (stock.length === 1){
+    chipsBox.innerHTML = '';
+    renderItemTypeAndDesc(itemId, stock[0].rarity, stock[0].details);
+    state.selectedItemInstance = stock[0];
+    useBtn.hidden = false;
+  } else {
+    const byRarity = {};
+    stock.forEach((s) => { (byRarity[s.rarity] = byRarity[s.rarity] || []).push(s); });
+    chipsBox.innerHTML = `<div class="goal-mode-toggle">${Object.keys(byRarity).map((rarity) =>
+      `<button type="button" class="mode-btn item-rarity-chip" data-rarity="${rarity}">${rarityLabelHtml(rarity)} ×${byRarity[rarity].length}</button>`
+    ).join('')}</div>`;
+    renderItemTypeAndDesc(itemId, null, null);
+    useBtn.hidden = true;
+    chipsBox.querySelectorAll('.item-rarity-chip').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        chipsBox.querySelectorAll('.item-rarity-chip').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const chosen = byRarity[btn.dataset.rarity][0];
+        state.selectedItemInstance = chosen;
+        renderItemTypeAndDesc(itemId, chosen.rarity, chosen.details);
+        useBtn.hidden = false;
+      });
+    });
+  }
+  $('#item-detail-modal').hidden = false;
+}
+
+function closeItemDetail(){
+  $('#item-detail-modal').hidden = true;
+}
+
+async function confirmUseSelectedItem(){
+  const itemId = state.selectedItemId;
+  const instance = state.selectedItemInstance;
+  if (!itemId || !instance) return;
+
+  if (itemId === 'amulette_xp'){
+    const invData = await api('/api/inventory');
+    const boosts = invData.activeBoosts;
+    if (boosts && boosts.amuletteEndsAt && new Date(boosts.amuletteEndsAt) > new Date()){
+      closeItemDetail();
+      $('#amulette-conflict-modal').hidden = false;
+      return;
+    }
+  } else if (itemId === 'detecteur_metal'){
+    const invData = await api('/api/inventory');
+    const boosts = invData.activeBoosts;
+    if (boosts && boosts.detecteurEndsAt && new Date(boosts.detecteurEndsAt) > new Date()){
+      closeItemDetail();
+      $('#detecteur-conflict-modal').hidden = false;
+      return;
+    }
+  }
+
+  closeItemDetail();
+  openUseItemPicker(itemId, instance.id);
+}
+
 function openUseItemPicker(itemId, instanceId, rarity){
   if (itemId === 'talisman_pardon'){
     const body = `
@@ -2041,16 +2232,13 @@ async function useItemDirect(itemId, instanceId){
   try {
     const res = await api(`/api/inventory/use/${instanceId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
     const r = res.result;
-    let msg = '';
-    if (r.effect === 'amulette_xp') msg = t('use_item_amulette_result', { mult: r.mult, minutes: r.minutes });
-    else if (r.effect === 'don_xp') msg = t('use_item_don_xp_result', { xp: r.xp });
-    else if (r.effect === 'graine_patience') msg = t('use_item_graine_result', { xp: r.bonus });
-    else if (r.effect === 'plume_legere') msg = t('use_item_plume_result', { goal: r.newGoal });
-    else if (r.effect === 'echo_passe') msg = t('use_item_echo_result_' + r.framing) + `<div class="ms-empty-note" style="margin-top:10px;">"${escapeHtml(r.note.text)}"</div>`;
-    $('#use-item-icon').textContent = ITEM_META[itemId].icon;
-    $('#use-item-name').textContent = t(`item_name_${itemId}`);
-    $('#use-item-body').innerHTML = `<p>${msg}</p>`;
-    $('#use-item-modal').hidden = false;
+    if (r.effect === 'echo_passe'){
+      const msg = t('use_item_echo_result_' + r.framing) + `<div class="ms-empty-note" style="margin-top:10px;">"${escapeHtml(r.note.text)}"</div>`;
+      $('#use-item-icon').textContent = ITEM_META[itemId].icon;
+      $('#use-item-name').textContent = t(`item_name_${itemId}`);
+      $('#use-item-body').innerHTML = `<p>${msg}</p>`;
+      $('#use-item-modal').hidden = false;
+    }
     refreshXP();
     invalidateCalendarCache();
     await refreshDay();
@@ -2061,6 +2249,8 @@ async function useItemDirect(itemId, instanceId){
     updateActiveBoostDisplay();
   } catch (err) {
     if (itemId === 'echo_passe') alert(t('use_item_echo_none'));
+    else if (itemId === 'amulette_xp') $('#amulette-conflict-modal').hidden = false;
+    else if (itemId === 'detecteur_metal') $('#detecteur-conflict-modal').hidden = false;
   }
 }
 
@@ -2145,11 +2335,13 @@ function init(){
 
   $('#note-input').addEventListener('focus', () => {
     $('#mood-row').hidden = false;
+    $('#note-save-btn').hidden = false;
   });
   const notesCard = document.querySelector('.notes');
   document.addEventListener('click', (e) => {
     if (!notesCard.contains(e.target)){
       $('#mood-row').hidden = true;
+      $('#note-save-btn').hidden = true;
     }
   });
 
@@ -2171,6 +2363,7 @@ function init(){
     const input = $('#note-input');
     addNote(input.value);
     input.value = '';
+    $('#note-save-btn').hidden = true;
   });
 
   $$('.tab').forEach((t) => t.addEventListener('click', () => switchView(t.dataset.view)));
@@ -2196,6 +2389,10 @@ function init(){
   $('#badge-modal-ok').addEventListener('click', () => dismissCelebration('#badge-modal'));
   $('#item-drop-ok').addEventListener('click', () => dismissCelebration('#item-drop-modal'));
   $('#use-item-close').addEventListener('click', () => { $('#use-item-modal').hidden = true; });
+  $('#item-detail-close-x').addEventListener('click', closeItemDetail);
+  $('#item-detail-use-btn').addEventListener('click', confirmUseSelectedItem);
+  $('#amulette-conflict-ok').addEventListener('click', () => { $('#amulette-conflict-modal').hidden = true; });
+  $('#detecteur-conflict-ok').addEventListener('click', () => { $('#detecteur-conflict-modal').hidden = true; });
   $('#inventory-header-btn').addEventListener('click', openInventory);
   $('#app-wordmark').addEventListener('click', () => {
     if (state.echoDoreActive) playEchoDoreMelody();

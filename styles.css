@@ -124,6 +124,13 @@ body.echo-dore-active .wordmark:active{opacity:0.75;}
   0%,100%{filter:drop-shadow(0 0 1px var(--or));}
   50%{filter:drop-shadow(0 0 4px var(--or));}
 }
+.ring-progress.ring-platine{
+  animation:ring-glow-pulse-platine 1.8s ease-in-out infinite;
+}
+@keyframes ring-glow-pulse-platine{
+  0%,100%{filter:drop-shadow(0 0 2px var(--platine-b)) drop-shadow(0 0 1px var(--platine-a));}
+  50%{filter:drop-shadow(0 0 9px var(--platine-a)) drop-shadow(0 0 5px var(--platine-b));}
+}
 
 .ring-ripple-circle{
   fill:none;stroke:var(--fire);stroke-width:4;
@@ -704,6 +711,23 @@ body.calendrier-celeste-active .cal-day.tr-or{
   font-family:'Manrope',sans-serif;
 }
 .inventory-item .inv-rank-lock{font-size:9px;color:var(--text-muted);opacity:0.6;margin-top:2px;}
+.inventory-item .inv-rarity-row{font-size:9px;margin-top:2px;}
+
+.rarity-label{font-weight:700;}
+.rarity-basique{color:#4A9EFF;}
+.rarity-rare{color:#A855F7;}
+.rarity-epique{color:#EC4899;}
+.rarity-legendaire{color:#F97316;}
+.rarity-mythique{
+  background:linear-gradient(90deg,#FF6EC7,#FFD966,#9FD8FF,#FF6EC7);
+  background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:rarity-mythique-shimmer 3s linear infinite;
+}
+@keyframes rarity-mythique-shimmer{
+  0%{background-position:0% 50%;}
+  100%{background-position:100% 50%;}
+}
 
 .inventory-header-btn-img{padding:2px 8px;}
 .inventory-header-btn-img img{width:24px;height:24px;display:block;object-fit:contain;}
@@ -754,6 +778,12 @@ body.calendrier-celeste-active .cal-day.tr-or{
   cursor:pointer;
 }
 .mode-btn-two-line{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.item-rarity-chip{
+  padding:13px 8px;
+  white-space:nowrap;
+  font-size:13px;
+  letter-spacing:0.2px;
+}
 .mode-btn-sub{font-size:10px;font-weight:500;opacity:0.7;letter-spacing:0.2px;}
 .mode-btn.active{
   background:rgba(var(--fire-r),var(--fire-g),var(--fire-b),0.18);
@@ -800,6 +830,9 @@ body.calendrier-celeste-active .cal-day.tr-or{
 
 /* ---------- Rank up celebration ---------- */
 .rankup-modal{position:relative;overflow:hidden;}
+.item-detail-type-line{font-size:13px;color:var(--text-muted);margin-top:8px;}
+#item-detail-desc{margin-top:6px;margin-bottom:20px;}
+#item-detail-use-btn{margin-top:8px;}
 .rankup-burst{
   position:absolute;inset:-40%;
   background:conic-gradient(from 0deg, var(--fire), transparent, var(--or), transparent, var(--fire));

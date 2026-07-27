@@ -37,7 +37,7 @@ const RARITY_ORDER = ['basique', 'rare', 'epique', 'legendaire', 'mythique'];
 const ITEMS = [
   {
     id: 'plume_legere', name: 'Plume légère', minRank: 0,
-    rarities: { basique: { reduction: 0.01 }, rare: { reduction: 0.02 }, epique: { reduction: 0.05 }, legendaire: { reduction: 0.10 } },
+    rarities: { basique: { reduction: 0.05 }, rare: { reduction: 0.10 }, epique: { reduction: 0.15 }, legendaire: { reduction: 0.20 } },
   },
   {
     id: 'amulette_xp', name: "Amulette d'XP", minRank: 1,
@@ -55,54 +55,60 @@ const ITEMS = [
     rarities: { basique: { mult: 2 }, rare: { mult: 3 }, epique: { mult: 4 }, legendaire: { mult: 5 } },
   },
   {
-    id: 'talisman_pardon', name: 'Talisman du pardon', minRank: 1,
+    id: 'talisman_pardon', name: 'Talisman du pardon', minRank: 1, weight: 1.1948,
     rarities: { epique: { protect: true }, legendaire: { protect: true } },
   },
   {
     id: 'echo_passe', name: 'Écho du passé', minRank: 1, minAppDays: 30,
     rarities: { rare: { echo: true } },
   },
+  {
+    id: 'detecteur_metal', name: 'Détecteur de métal', minRank: 0, maxStack: 3,
+    rarities: { rare: { boost: 0.15, minutes: 60 }, epique: { boost: 0.20, minutes: 60 } },
+  },
 ];
 
 // Mythic items: their own separate, much rarer pool. One-time-only per
 // account, never re-obtainable once discovered (regardless of use).
 const MYTHIC_ITEMS = [
-  { id: 'fragment_eternite', name: "Fragment d'Éternité", minRank: 4, xp: 2000, weight: 1.3 },
-  { id: 'toucher_divin', name: 'Toucher du divin', minRank: 4, cosmetic: true, weight: 1 },
-  { id: 'poussiere_etoiles', name: "Poussière d'étoiles", minRank: 4, cosmetic: true, weight: 1 },
-  { id: 'calendrier_celeste', name: 'Calendrier céleste', minRank: 4, cosmetic: true, weight: 1 },
-  { id: 'echo_dore', name: 'Écho doré', minRank: 4, cosmetic: true, weight: 1 },
-  { id: 'mode_arcenciel', name: 'Mode arc-en-ciel', minRank: 4, cosmetic: true, weight: 1 },
+  { id: 'fragment_eternite', name: "Fragment d'Éternité", minRank: 1, xp: 2000, weight: 1.3 },
+  { id: 'toucher_divin', name: 'Toucher du divin', minRank: 1, cosmetic: true, weight: 1 },
+  { id: 'poussiere_etoiles', name: "Poussière d'étoiles", minRank: 1, cosmetic: true, weight: 1 },
+  { id: 'calendrier_celeste', name: 'Calendrier céleste', minRank: 1, cosmetic: true, weight: 1 },
+  { id: 'echo_dore', name: 'Écho doré', minRank: 1, cosmetic: true, weight: 1 },
+  { id: 'mode_arcenciel', name: 'Mode arc-en-ciel', minRank: 1, cosmetic: true, weight: 1 },
 ];
 
-const DROP_CHANCE_FLOOR = 0.015;
-const DROP_CHANCE_CEIL = 0.04;
+const DROP_CHANCE_FLOOR = 0.03;
+const DROP_CHANCE_CEIL = 0.08;
 const DROP_CHANCE_SET_CAP = 50;
 const DROP_CHANCE_RANK_GROWTH = 1.15;
-const DROP_CHANCE_ABS_CEILING = 0.10;
+const DROP_CHANCE_ABS_CEILING = 0.20;
 
-function itemDropChance(count, rankIdx) {
+function itemDropChance(count, rankIdx, db) {
   const t = Math.max(0, Math.min(1, (count - 10) / (DROP_CHANCE_SET_CAP - 10)));
   const base = DROP_CHANCE_FLOOR + (DROP_CHANCE_CEIL - DROP_CHANCE_FLOOR) * t;
   const mult = Math.pow(DROP_CHANCE_RANK_GROWTH, Math.max(0, rankIdx - 1));
-  return Math.min(DROP_CHANCE_ABS_CEILING, base * mult);
+  let chance = base * mult;
+  if (db && db.activeBoosts && db.activeBoosts.detecteurEndsAt && new Date(db.activeBoosts.detecteurEndsAt) > new Date()) {
+    chance += db.activeBoosts.detecteurBonus || 0;
+  }
+  return Math.min(DROP_CHANCE_ABS_CEILING, chance);
 }
 
-const RARITY_FLOOR = { basique: 0.80, rare: 0.16, epique: 0.035, legendaire: 0.005 };
-const RARITY_CEIL = { basique: 0.40, rare: 0.35, epique: 0.18, legendaire: 0.07 };
+// Rarity distribution (regular, non-mythic, non-detecteur items) interpolates
+// between a "floor" (small sets) and a "ceiling" (50 push-ups, a deliberately
+// hidden cap) — never revealed to the user.
+const RARITY_FLOOR = { basique: 0.45, rare: 0.40, epique: 0.12, legendaire: 0.03 };
+const RARITY_CEIL = { basique: 0.15, rare: 0.40, epique: 0.30, legendaire: 0.15 };
 const RARITY_SET_CAP = 50;
 
-const MYTHIQUE_BELOW_20_SHARE = 0.05;
-const MYTHIQUE_STEP_FLOOR = 0.10;
-const MYTHIQUE_STEP_CEIL = 0.22;
-const MYTHIQUE_STEPS = [20, 25, 30, 35, 40, 45, 50];
-
-function mythiqueShare(count) {
-  if (count < 20) return MYTHIQUE_BELOW_20_SHARE;
-  const capped = Math.min(count, 50);
-  const idx = Math.min(Math.floor((capped - 20) / 5), MYTHIQUE_STEPS.length - 1);
-  const t = idx / (MYTHIQUE_STEPS.length - 1);
-  return MYTHIQUE_STEP_FLOOR + (MYTHIQUE_STEP_CEIL - MYTHIQUE_STEP_FLOOR) * t;
+// From Légende onward, Basique gets capped and eventually eliminated — its
+// share is redistributed proportionally across the remaining tiers.
+function basiqueCapForRank(rankIdx) {
+  if (rankIdx >= 5) return 0;      // Imbattable and beyond: no more Basique
+  if (rankIdx >= 4) return 0.05;   // Légende: 5% max
+  return 1;                         // no cap below Légende
 }
 
 function rarityDistribution(count, rankIdx) {
@@ -111,13 +117,13 @@ function rarityDistribution(count, rankIdx) {
   for (const tier of ['basique', 'rare', 'epique', 'legendaire']) {
     dist[tier] = RARITY_FLOOR[tier] + (RARITY_CEIL[tier] - RARITY_FLOOR[tier]) * t;
   }
-  if (rankIdx >= 4) {
-    const mythShare = mythiqueShare(count);
-    const legendPool = dist.legendaire;
-    dist.mythique = legendPool * mythShare;
-    dist.legendaire = legendPool * (1 - mythShare);
-  } else {
-    dist.mythique = 0;
+  const cap = basiqueCapForRank(rankIdx);
+  if (dist.basique > cap) {
+    const freed = dist.basique - cap;
+    dist.basique = cap;
+    const others = ['rare', 'epique', 'legendaire'];
+    const othersTotal = others.reduce((sum, k) => sum + dist[k], 0);
+    others.forEach((k) => { dist[k] += othersTotal > 0 ? freed * (dist[k] / othersTotal) : freed / others.length; });
   }
   return dist;
 }
@@ -126,12 +132,27 @@ function rollRarity(count, rankIdx, rng) {
   const dist = rarityDistribution(count, rankIdx);
   const r = rng();
   let acc = 0;
-  for (const tier of ['mythique', 'legendaire', 'epique', 'rare', 'basique']) {
+  for (const tier of ['legendaire', 'epique', 'rare', 'basique']) {
     acc += dist[tier];
     if (r < acc) return tier;
   }
   return 'basique';
 }
+
+// Mythique: a completely independent roll — a player can find a regular
+// item AND a mythic item (and/or a Détecteur de métal) from the very same
+// set. Fixed odds by set size, gated only by rank (Discipliné+).
+function mythiqueChance(count) {
+  if (count <= 10) return 1 / 1000;
+  if (count <= 34) return 1 / 800;
+  if (count <= 49) return 1 / 600;
+  return 1 / 500;
+}
+
+// Détecteur de métal: also a fully independent roll, available from any
+// rank, flat 7% per set regardless of size. 70% Rare / 30% Épique.
+const DETECTEUR_CHANCE = 0.07;
+const DETECTEUR_RARE_SHARE = 0.70;
 
 function currentInventoryCount(db, itemId) {
   return (db.inventory || []).filter((inst) => inst.itemId === itemId).length;
@@ -139,15 +160,14 @@ function currentInventoryCount(db, itemId) {
 
 function eligibleItemsForRarity(rarity, rankIdx, db) {
   const testerActive = !!(db.testerMode && db.testerMode.active);
-  return ITEMS.filter((it) => (testerActive || it.minRank <= rankIdx) && it.rarities[rarity] &&
+  return ITEMS.filter((it) => it.id !== 'detecteur_metal' && (testerActive || it.minRank <= rankIdx) && it.rarities[rarity] &&
     (testerActive || !it.minAppDays || appHasBeenUsedForDays(db, it.minAppDays)) &&
     (testerActive || currentInventoryCount(db, it.id) < 2));
 }
 
 function appHasBeenUsedForDays(db, days) {
-  const start = earliestAnyDataDate(db);
-  if (!start) return false;
-  const diff = (new Date(todayStr() + 'T00:00:00') - new Date(start + 'T00:00:00')) / 86400000;
+  if (!db.firstUsedAt) return false;
+  const diff = (new Date(todayStr() + 'T00:00:00') - new Date(db.firstUsedAt)) / 86400000;
   return diff >= days;
 }
 
@@ -162,29 +182,43 @@ function weightedPick(items, weightFn, rng) {
   return items[items.length - 1];
 }
 
-// Attempts an item drop for a freshly-added entry. Returns the drop record
-// to store on the entry (or null if nothing dropped), so it can be undone
-// precisely if that entry is later deleted.
+// Attempts item drops for a freshly-added entry. Three fully independent
+// rolls — a regular item, a mythic item, and Détecteur de métal can all
+// land on the very same set. Returns an array (0 to 3 entries), remembered
+// on the entry so undoing it later can cleanly and precisely reverse
+// everything it granted.
 function attemptItemDrop(db, entry, rng) {
   rng = rng || Math.random;
   const rankIdx = rankIndexForGoal(goalForDate(db, entry.date));
   const testerActive = !!(db.testerMode && db.testerMode.active);
-  const chance = testerActive ? 0.5 : itemDropChance(entry.count, rankIdx);
-  if (rng() >= chance) return null;
+  const drops = [];
 
-  const rarity = rollRarity(entry.count, rankIdx, rng);
-  if (rarity === 'mythique') {
-    const eligible = MYTHIC_ITEMS.filter((it) => (testerActive || it.minRank <= rankIdx) && (testerActive || !(db.mythicDiscovered || {})[it.id]));
-    if (!eligible.length) return null; // all mythics already claimed, or none unlocked yet
-    const chosen = weightedPick(eligible, (it) => it.weight, rng);
-    return { itemId: chosen.id, rarity: 'mythique', mythic: true };
+  const dropChance = testerActive ? 0.5 : itemDropChance(entry.count, rankIdx, db);
+  if (rng() < dropChance) {
+    const rarity = rollRarity(entry.count, rankIdx, rng);
+    const eligible = eligibleItemsForRarity(rarity, rankIdx, db);
+    if (eligible.length) {
+      const chosen = weightedPick(eligible, (it) => it.weight || 1, rng);
+      drops.push({ itemId: chosen.id, rarity, mythic: false });
+    }
   }
 
-  const eligible = eligibleItemsForRarity(rarity, rankIdx, db);
-  if (!eligible.length) return null;
-  const chosen = eligible[Math.floor(rng() * eligible.length)];
-  return { itemId: chosen.id, rarity, mythic: false };
+  if ((testerActive || rankIdx >= 1) && rng() < (testerActive ? 0.5 : mythiqueChance(entry.count))) {
+    const eligible = MYTHIC_ITEMS.filter((it) => (testerActive || it.minRank <= rankIdx) && (testerActive || !(db.mythicDiscovered || {})[it.id]));
+    if (eligible.length) {
+      const chosen = weightedPick(eligible, (it) => it.weight, rng);
+      drops.push({ itemId: chosen.id, rarity: 'mythique', mythic: true });
+    }
+  }
+
+  if (rng() < DETECTEUR_CHANCE && (testerActive || currentInventoryCount(db, 'detecteur_metal') < 3)) {
+    const rarity = rng() < DETECTEUR_RARE_SHARE ? 'rare' : 'epique';
+    drops.push({ itemId: 'detecteur_metal', rarity, mythic: false });
+  }
+
+  return drops;
 }
+
 
 const VALID_MOODS = ['energique', 'calme', 'fatigue', 'epuise', 'stresse', 'anxieux', 'embrouille', 'concentre', 'emotionnel', 'colere', 'motive', 'fier'];
 
@@ -236,6 +270,8 @@ function freshDB() {
     mythicActiveStates: {},
     protectedHabitDays: {},
     firstLegendaryFound: null,
+    firstUsedAt: new Date().toISOString(),
+    platinumShownDates: [],
     testerMode: { active: false, snapshot: null },
   };
 }
@@ -298,6 +334,11 @@ function loadDB() {
   if (db.toucherDivinActive) db.mythicActiveStates.toucher_divin = true;
   if (!db.protectedHabitDays) db.protectedHabitDays = {};
   if (db.firstLegendaryFound === undefined) db.firstLegendaryFound = null;
+  if (!db.firstUsedAt) {
+    const earliest = earliestAnyDataDate(db);
+    db.firstUsedAt = earliest ? new Date(earliest + 'T00:00:00').toISOString() : new Date().toISOString();
+  }
+  if (!db.platinumShownDates) db.platinumShownDates = [];
   if (!db.testerMode) db.testerMode = { active: false, snapshot: null };
 
   _db = db;
@@ -363,19 +404,47 @@ function totalForDate(db, date) {
   return db.entries.filter((e) => e.date === date).reduce((sum, e) => sum + e.count, 0);
 }
 
-function isPlatinumWeek(db, anyDateInWeek) {
-  const dates = weekDatesFor(anyDateInWeek);
-  return dates.every((date) => {
-    const goal = safeGoalForDate(db, date);
-    const total = totalForDate(db, date);
-    return goal > 0 && total >= goal;
-  });
+function platinumWeekInfo(db, uptoDateStr) {
+  const floorStr = earliestAnyDataDate(db);
+  if (!floorStr) return { completions: [], weekDateSets: [] };
+  let cursor = new Date(floorStr + 'T00:00:00');
+  const end = new Date(uptoDateStr + 'T00:00:00');
+  let streak = [];
+  const completions = [];
+  const weekDateSets = [];
+  while (cursor <= end) {
+    const ds = cursor.toLocaleDateString('en-CA');
+    const goal = safeGoalForDate(db, ds);
+    const total = totalForDate(db, ds);
+    const isGold = goal > 0 && total >= goal;
+    if (isGold) {
+      streak.push(ds);
+      if (streak.length === 7) {
+        completions.push(ds);
+        weekDateSets.push(streak.slice());
+        streak = [];
+      }
+    } else {
+      streak = [];
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return { completions, weekDateSets };
 }
 
 function countPlatinumWeeks(db) {
-  const datesWithEntries = [...new Set(db.entries.map((e) => e.date))];
-  const weekStarts = new Set(datesWithEntries.map((d) => weekDatesFor(d)[0]));
-  return [...weekStarts].filter((ws) => isPlatinumWeek(db, ws)).length;
+  return platinumWeekInfo(db, todayStr()).completions.length;
+}
+
+function isPlatinumCompletionDate(db, date) {
+  return platinumWeekInfo(db, date).completions.includes(date);
+}
+
+function datesInPlatinumWeeks(db, uptoDateStr) {
+  const info = platinumWeekInfo(db, uptoDateStr);
+  const set = new Set();
+  info.weekDateSets.forEach((week) => week.forEach((d) => set.add(d)));
+  return set;
 }
 
 function countTrueDays(db, key) {
@@ -525,18 +594,17 @@ function bestMonthRecord(db) {
   return bestTotal > 0 ? { total: bestTotal, monthKey: bestMonth } : null;
 }
 function longestPlatinumStreak(db) {
-  const dates = [...new Set(db.entries.map((e) => e.date))];
-  const weekStarts = [...new Set(dates.map((d) => weekDatesFor(d)[0]))].sort();
-  let best = 0, current = 0, prevWs = null;
-  weekStarts.forEach((ws) => {
-    if (isPlatinumWeek(db, ws)) {
-      if (prevWs) {
-        const diffDays = (new Date(ws + 'T00:00:00') - new Date(prevWs + 'T00:00:00')) / 86400000;
-        current = diffDays === 7 ? current + 1 : 1;
-      } else current = 1;
-      if (current > best) best = current;
-      prevWs = ws;
-    } else { current = 0; prevWs = null; }
+  const info = platinumWeekInfo(db, todayStr());
+  let best = 0, current = 0, prevCompletion = null;
+  info.completions.forEach((completionDate) => {
+    if (prevCompletion) {
+      const diffDays = (new Date(completionDate + 'T00:00:00') - new Date(prevCompletion + 'T00:00:00')) / 86400000;
+      current = diffDays === 7 ? current + 1 : 1;
+    } else {
+      current = 1;
+    }
+    if (current > best) best = current;
+    prevCompletion = completionDate;
   });
   return best;
 }
@@ -563,10 +631,8 @@ function firstDateStreakReaches(db, key, target) {
   return null;
 }
 function firstPlatinumWeekDate(db) {
-  const datesWithEntries = [...new Set(db.entries.map((e) => e.date))].sort();
-  const weekStarts = [...new Set(datesWithEntries.map((d) => weekDatesFor(d)[0]))].sort();
-  for (const ws of weekStarts) if (isPlatinumWeek(db, ws)) return weekDatesFor(ws)[6];
-  return null;
+  const info = platinumWeekInfo(db, todayStr());
+  return info.completions.length ? info.completions[0] : null;
 }
 function nthDisciplinedDayDate(db, n) {
   const datesWithEntries = [...new Set(db.entries.map((e) => e.date))].sort();
@@ -603,6 +669,33 @@ function firstDateMonthDayReaching(db, monthDay, minTotal) {
   const matches = [...years].map((y) => `${y}-${monthDay}`).filter((d) => totalForDate(db, d) >= minTotal).sort();
   return matches.length ? matches[0] : null;
 }
+function firstDateOfConsecutiveDaySum(db, targetSum, windowDays) {
+  const datesWithEntries = [...new Set(db.entries.map((e) => e.date))];
+  if (datesWithEntries.length === 0) return null;
+  const floorStr = datesWithEntries.sort()[0];
+  let cursor = new Date(floorStr + 'T00:00:00');
+  const today = new Date(todayStr() + 'T00:00:00');
+  const window = [];
+  while (cursor <= today) {
+    const ds = cursor.toLocaleDateString('en-CA');
+    window.push(totalForDate(db, ds));
+    if (window.length > windowDays) window.shift();
+    if (window.length === windowDays && window.reduce((a, b) => a + b, 0) >= targetSum) return ds;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return null;
+}
+
+function firstDateAtTotalPushups(db, target) {
+  const sorted = db.entries.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time) || a.createdAt.localeCompare(b.createdAt));
+  let running = 0;
+  for (const e of sorted) {
+    running += e.count;
+    if (running >= target) return e.date;
+  }
+  return null;
+}
+
 function firstDateOfConsecutiveDailyMin(db, minPerDay, consecutiveDays) {
   const datesWithEntries = [...new Set(db.entries.map((e) => e.date))];
   if (!datesWithEntries.length) return null;
@@ -672,9 +765,10 @@ function simulateXPTimeline(db) {
   const floorStr = candidates.sort()[0];
   let cursor = new Date(floorStr + 'T00:00:00');
   const today = new Date(todayStr() + 'T00:00:00');
-  let cumulative = 0;
+  let cumulative = (db.bonusXP || 0) + badgeBonusXP(db);
   const timeline = [];
   const todayStrVal = todayStr();
+  const platinumCompletions = new Set(platinumWeekInfo(db, todayStrVal).completions);
   while (cursor <= today) {
     const ds = cursor.toLocaleDateString('en-CA');
     const dayTotal = totalForDate(db, ds);
@@ -688,7 +782,7 @@ function simulateXPTimeline(db) {
       if (h && h.marche) cumulative += 15;
     }
     cumulative += dailyTrophyXP(db, ds);
-    if (cursor.getDay() === 6 && isPlatinumWeek(db, ds)) cumulative += 50;
+    if (platinumCompletions.has(ds)) cumulative += 50;
     timeline.push({ date: ds, xp: cumulative });
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -721,25 +815,27 @@ const BADGES = [
   { id: 'rank-immortel', name: 'Rang Immortel', desc: 'Atteindre le rang Immortel', xp: Math.round(RANKS[6].min * 0.01), icon: '⭐', check: (db) => firstDateReachingXP(db, RANKS[6].min) },
   { id: 'rank-divin', name: 'Rang Divin', desc: 'Atteindre le rang Divin', xp: Math.round(RANKS[7].min * 0.01), icon: '⭐', check: (db) => firstDateReachingXP(db, RANKS[7].min) },
   { id: 'or-streak-5', name: "Ça vaut de l'or", desc: "Atteint l'or 5 jours de suite", xp: 25, icon: '🏅', check: (db) => firstDateGoalStreakReaches(db, 5) },
-  { id: 'cent-mille', name: '100k!', desc: 'Atteint 100 000 XP au total', xp: 1000, icon: '💯', check: (db) => firstDateReachingXP(db, 100000) },
+  { id: 'cent-mille', name: '100k!', desc: 'Atteint 100 000 XP au total', xp: 1000, icon: '💯', secret: true, check: (db) => firstDateReachingXP(db, 100000) },
   { id: 'decafeine', name: 'Décaféiné!', desc: '1 mois complet (30 jours consécutifs) sans caféine', xp: 150, icon: '☕', check: (db) => firstDateStreakReaches(db, 'cafe', 30) },
   { id: 'clarte', name: "Clarté d'esprit", desc: '1 mois complet (30 jours consécutifs) sans drogue', xp: 300, icon: '🧠', check: (db) => firstDateStreakReaches(db, 'cannabis', 30) },
   { id: 'consistance', name: 'La consistance porte fruits', desc: '50 push-ups en une seule série', xp: 75, icon: '💪', check: (db) => firstEntryDateWithMinCount(db, 50) },
   { id: 'force-tot', name: 'Force-tôt!', desc: '150 push-ups entre 6h et midi, dans la même journée', xp: 75, icon: '🌅', check: (db) => firstDateWithMorningTotal(db, 150) },
   { id: 'cadeau-noel', name: 'Un gros cadeau pour les pectoraux', desc: '250 push-ups le 25 décembre', xp: 250, icon: '🎄', check: (db) => dec25DateReaching(db, 250) },
   { id: 'brillant', name: 'Brillant!', desc: 'Première semaine parfaite (trophée Platine)', xp: 100, icon: '💎', check: (db) => firstPlatinumWeekDate(db) },
-  { id: 'motivation100', name: '100 Motivation?', desc: '100 jours de discipline (trophée Or ou mieux)', xp: 300, icon: '🥇', check: (db) => nthDisciplinedDayDate(db, 100) },
-  { id: 'top-modele', name: 'Top modèle', desc: '30 photos ajoutées au total', xp: 50, icon: '📸', check: (db) => firstDateAtNthPhoto(db, 30) },
-  { id: 'oiseau-nuit', name: 'Oiseau de nuit', desc: '50 push-ups entre minuit et 4h du matin, dans la même nuit', xp: 200, icon: '🦉', secret: true, check: (db) => firstDateWithHourRangeTotal(db, 50, 0, 4) },
-  { id: 'resolution-nouvel-an', name: 'Résolution du Nouvel An', desc: '100 push-ups le 1er janvier', xp: 300, icon: '🎉', secret: true, check: (db) => firstDateMonthDayReaching(db, '01-01', 100) },
-  { id: 'mille-en-cinq', name: '1000 en 5', desc: 'Au moins 200 push-ups par jour, 5 jours consécutifs', xp: 300, icon: '🔥', secret: true, check: (db) => firstDateOfConsecutiveDailyMin(db, 200, 5) },
-  { id: 'semaine-promenades', name: 'Semaine de promenades', desc: "Marche à l'extérieur, 7 jours consécutifs", xp: 300, icon: '🚶', secret: true, check: (db) => firstDateTrueStreakReaches(db, 'marche', 7) },
+  { id: 'motivation100', name: '100 Motivation?', desc: "Atteindre l'Or pendant 100 jours au total", xp: 300, icon: '🥇', secret: true, check: (db) => nthDisciplinedDayDate(db, 100) },
+  { id: 'top-modele', name: 'Top modèle', desc: '10 photos ajoutées au total', xp: 50, icon: '📸', secret: true, check: (db) => firstDateAtNthPhoto(db, 10) },
+  { id: 'oiseau-nuit', name: 'Oiseau de nuit', desc: '50 push-ups entre minuit et 4h du matin, dans la même nuit', xp: 200, icon: '🦉', check: (db) => firstDateWithHourRangeTotal(db, 50, 0, 4) },
+  { id: 'resolution-nouvel-an', name: 'Résolution du Nouvel An', desc: '100 push-ups le 1er janvier', xp: 300, icon: '🎉', check: (db) => firstDateMonthDayReaching(db, '01-01', 100) },
+  { id: 'mille-en-cinq', name: '1000 en 5', desc: 'Effectue 1000 push-ups au total sur 5 jours consécutifs', xp: 300, icon: '🔥', check: (db) => firstDateOfConsecutiveDaySum(db, 1000, 5) },
+  { id: 'semaine-promenades', name: 'Semaine de promenades', desc: "Prendre une marche à l'extérieur pendant 7 jours consécutifs", xp: 300, icon: '🚶', secret: true, check: (db) => firstDateTrueStreakReaches(db, 'marche', 7) },
   { id: 'je-note', name: 'Je NOTE!', desc: '100 notes ajoutées au total', xp: 150, icon: '📝', secret: true, check: (db) => firstDateAtNthNote(db, 100) },
   { id: 'premier-tresor', name: 'Premier trésor', desc: 'Trouver ton tout premier objet', xp: 50, icon: '🎁', secret: true, check: (db) => nthItemDiscoveryDate(db, 1) },
   { id: 'petit-coffre', name: 'Petit coffre', desc: 'Découvrir 3 objets différents', xp: 100, icon: '🧰', secret: true, check: (db) => nthItemDiscoveryDate(db, 3) },
   { id: 'grand-collectionneur', name: 'Grand collectionneur', desc: 'Découvrir tous les objets existants', xp: 400, icon: '🏆', secret: true, check: (db) => nthItemDiscoveryDate(db, ITEMS.length) },
-  { id: 'legendaire-badge', name: 'Légendaire!', desc: "Débloquer une version légendaire d'un objet, pour la première fois", xp: 200, icon: '✨', secret: true, check: (db) => firstLegendaryDate(db) },
-  { id: 'impossible-devient-reel', name: "L'impossible devient réel", desc: 'Trouver ton tout premier objet Mythique', xp: 500, icon: '🌟', secret: true, check: (db) => firstMythicDiscoveryDate(db) },
+  { id: 'legendaire-badge', name: 'Légendaire!', desc: "Débloque la version légendaire d'un objet pour la première fois", xp: 200, icon: '✨', secret: true, check: (db) => firstLegendaryDate(db) },
+  { id: 'impossible-devient-reel', name: "L'impossible devient réel", desc: 'Trouve ton tout premier objet Mythique', xp: 800, icon: '🌟', secret: true, check: (db) => firstMythicDiscoveryDate(db) },
+  { id: 'plein-dans-le-mille', name: 'En plein dans le mille!', desc: 'Effectue 1000 push-ups au total', xp: 100, icon: '🎯', secret: true, check: (db) => firstDateAtTotalPushups(db, 1000) },
+  { id: 'over-9000', name: "Au-dessus de 9000!", desc: 'Effectue 10 000 push-ups au total', xp: 500, icon: '⚡', check: (db) => firstDateAtTotalPushups(db, 10000) },
 ];
 
 function badgesUnlockedForDate(db, date) {
@@ -807,8 +903,7 @@ function computeMonthlySummary(db, monthKey) {
   dates.forEach((ds) => {
     const total = totalForDate(db, ds), goal = goalForDate(db, ds);
     let trophy = trophyForTotal(total, goal);
-    const dow = new Date(ds + 'T00:00:00').getDay();
-    if (dow === 6 && isPlatinumWeek(db, ds)) trophy = 'platine';
+    if (isPlatinumCompletionDate(db, ds)) trophy = 'platine';
     if (trophy) trophyCounts[trophy]++;
   });
   const moodCounts = {};
@@ -865,8 +960,7 @@ function dayPayload(db, date) {
   const total = totalForDate(db, date);
   const goal = goalForDate(db, date);
   let trophy = trophyForTotal(total, goal);
-  const dow = new Date(date + 'T00:00:00').getDay();
-  if (dow === 6 && isPlatinumWeek(db, date)) trophy = 'platine';
+  if (isPlatinumCompletionDate(db, date)) trophy = 'platine';
   return {
     date, entries, total, goal, trophy, notes,
     photos: db.photos[date] || [],
