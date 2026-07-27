@@ -36,7 +36,7 @@ const RARITY_ORDER = ['basique', 'rare', 'epique', 'legendaire', 'mythique'];
 // tiers this item can appear as (some items are restricted to a subset).
 const ITEMS = [
   {
-    id: 'plume_legere', name: 'Plume légère', minRank: 0,
+    id: 'plume_legere', name: 'Plume légère', minRank: 0, maxStack: 5,
     rarities: { basique: { reduction: 0.05 }, rare: { reduction: 0.10 }, epique: { reduction: 0.15 }, legendaire: { reduction: 0.20 } },
   },
   {
@@ -47,7 +47,7 @@ const ITEMS = [
     },
   },
   {
-    id: 'don_xp', name: "Don d'XP", minRank: 0,
+    id: 'don_xp', name: "Don d'XP", minRank: 0, maxStack: 99,
     rarities: { basique: { xp: 25 }, rare: { xp: 35 }, epique: { xp: 50 }, legendaire: { xp: 100 } },
   },
   {
@@ -151,7 +151,7 @@ function mythiqueChance(count) {
 
 // Détecteur de métal: also a fully independent roll, available from any
 // rank, flat 7% per set regardless of size. 70% Rare / 30% Épique.
-const DETECTEUR_CHANCE = 0.07;
+const DETECTEUR_CHANCE = 0.05;
 const DETECTEUR_RARE_SHARE = 0.70;
 
 function currentInventoryCount(db, itemId) {
@@ -162,7 +162,7 @@ function eligibleItemsForRarity(rarity, rankIdx, db) {
   const testerActive = !!(db.testerMode && db.testerMode.active);
   return ITEMS.filter((it) => it.id !== 'detecteur_metal' && (testerActive || it.minRank <= rankIdx) && it.rarities[rarity] &&
     (testerActive || !it.minAppDays || appHasBeenUsedForDays(db, it.minAppDays)) &&
-    (testerActive || currentInventoryCount(db, it.id) < 2));
+    (testerActive || currentInventoryCount(db, it.id) < (it.maxStack || 2)));
 }
 
 function appHasBeenUsedForDays(db, days) {
@@ -189,7 +189,7 @@ function weightedPick(items, weightFn, rng) {
 // everything it granted.
 function attemptItemDrop(db, entry, rng) {
   rng = rng || Math.random;
-  const rankIdx = rankIndexForGoal(goalForDate(db, entry.date));
+  const rankIdx = rankIndex(rankForXP(computeXP(db).xp));
   const testerActive = !!(db.testerMode && db.testerMode.active);
   const drops = [];
 
@@ -272,6 +272,7 @@ function freshDB() {
     firstLegendaryFound: null,
     firstUsedAt: new Date().toISOString(),
     platinumShownDates: [],
+    plumeUsesToday: { date: null, count: 0 },
     testerMode: { active: false, snapshot: null },
   };
 }
@@ -339,6 +340,7 @@ function loadDB() {
     db.firstUsedAt = earliest ? new Date(earliest + 'T00:00:00').toISOString() : new Date().toISOString();
   }
   if (!db.platinumShownDates) db.platinumShownDates = [];
+  if (!db.plumeUsesToday) db.plumeUsesToday = { date: null, count: 0 };
   if (!db.testerMode) db.testerMode = { active: false, snapshot: null };
 
   _db = db;

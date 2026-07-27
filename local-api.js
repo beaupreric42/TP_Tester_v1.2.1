@@ -410,10 +410,17 @@ async function localApi(path, opts) {
       result = { effect: 'graine_patience', bonus };
     } else if (inst.itemId === 'plume_legere') {
       const today = todayStr();
+      if (!db.plumeUsesToday || db.plumeUsesToday.date !== today) {
+        db.plumeUsesToday = { date: today, count: 0 };
+      }
+      if (db.plumeUsesToday.count >= 2) {
+        throw new Error('plume_max_atteint');
+      }
       const current = goalForDate(db, today);
       const reduced = Math.max(1, Math.round(current * (1 - vals.reduction)));
       db.goalSnapshots[today] = reduced;
-      result = { effect: 'plume_legere', newGoal: reduced };
+      db.plumeUsesToday.count += 1;
+      result = { effect: 'plume_legere', newGoal: reduced, usesToday: db.plumeUsesToday.count };
     } else if (inst.itemId === 'talisman_pardon') {
       const key = body.habitKey;
       if (!['cannabis', 'cafe', 'marche'].includes(key)) throw new Error('habitude invalide');

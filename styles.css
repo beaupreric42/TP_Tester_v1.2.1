@@ -360,6 +360,9 @@ body.calendrier-celeste-active .cal-day.tr-or{
   display:flex;align-items:flex-end;justify-content:center;z-index:60;
   animation:fadein 0.2s ease;
 }
+.modal-backdrop.modal-backdrop-centered{align-items:center;}
+.modal-backdrop.modal-backdrop-centered .qbtn{margin-top:16px;}
+.modal-backdrop.modal-backdrop-centered .modal{border-radius:22px;margin:0 20px;}
 .modal-backdrop[hidden]{display:none;}
 @keyframes fadein{from{opacity:0;}to{opacity:1;}}
 .modal{

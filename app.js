@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-26.00';
+const APP_VERSION = '2026-07-26.01';
 
 const state = {
   today: null,
@@ -197,7 +197,7 @@ const TRANSLATIONS = {
     inventory_btn: "🎒 Inventaire",
     inventory_title: "INVENTAIRE",
     inventory_mythic_title: "OBJETS MYTHIQUES",
-    inventory_back_btn: "← Retour",
+    inventory_back_btn: "Retour",
     inventory_undiscovered: "???",
     inventory_offline_unavailable: "Le système d'objets n'est pas encore disponible en mode hors ligne. Reviens en mode connecté pour y accéder!",
     inventory_empty_stock: "Épuisé",
@@ -214,6 +214,9 @@ const TRANSLATIONS = {
     detecteur_conflict_title: "Détecteur déjà actif",
     detecteur_conflict_desc: "Tu ne peux utiliser qu'un seul Détecteur de métal à la fois. Attends que celui en cours se termine.",
     detecteur_conflict_ok: "Ok, compris!",
+    plume_max_title: "Limite atteinte",
+    plume_max_desc: "Tu ne peux utiliser plus de 2 Plumes légères dans la même journée.",
+    plume_max_ok: "Ok, compris!",
     use_item_detecteur_result: "Chances d'objet augmentées de {pct}% pendant {minutes} minutes!",
     undo_item_confirm_title: "Annuler cette série?",
     undo_item_confirm_desc: "Cette série t'a donné {item}. Annuler la série va aussi retirer cet objet de ton inventaire.",
@@ -238,7 +241,7 @@ const TRANSLATIONS = {
     item_desc_graine_patience: "Multiplie l'XP de tes habitudes d'aujourd'hui par ×{mult}.",
     item_desc_talisman_pardon: "Protège le compteur d'une habitude pour une journée manquée, sans jamais changer ton historique réel.",
     item_desc_echo_passe: "Fait ressurgir un souvenir d'il y a longtemps. Déblocable après 30 jours d'utilisation de l'app.",
-    item_desc_detecteur_metal: "Pendant {minutes} minutes, augmente tes chances de {pct}% de trouver un objet en faisant des séries de push-ups. Ne touche pas aux objets Mythiques.",
+    item_desc_detecteur_metal: "Pendant {minutes} minutes, augmente tes chances de {pct}% de trouver un objet en faisant des séries de push-ups. L'effet de cet objet ne s'applique pas aux objets Mythiques.",
     item_desc_fragment_eternite: "Un fragment d'un accomplissement immense — +2000 XP, une fois dans toute ta vie.",
     item_desc_toucher_divin: "Un halo doré permanent autour de ta barre d'XP. Activable et désactivable à volonté.",
     item_drop_detail_reduction: "Réduit ton objectif de {pct}%",
@@ -257,6 +260,7 @@ const TRANSLATIONS = {
     rarity_legendaire: "Légendaire",
     rarity_mythique: "Mythique",
     active_boost_amulette: "Amulette d'XP active ×{mult}",
+    active_boost_detecteur: "Détecteur de métal actif +{pct}%",
     use_item_talisman_prompt: "Quelle habitude veux-tu protéger?",
     use_item_talisman_cannabis: "Sans drogue",
     use_item_talisman_cafe: "Sans caféine",
@@ -283,6 +287,7 @@ const TRANSLATIONS = {
     modal_entries_title: "SÉRIES",
     modal_entries_empty: "Aucune série ce jour-là.",
     celebration_ok: "Merci, continue!",
+    item_drop_ok: "Continuer",
     rankup_title: "NOUVEAU RANG!",
     rankup_desc_prefix: "Tu es maintenant",
     rankup_new_goal: "Nouvel objectif",
@@ -452,7 +457,7 @@ const TRANSLATIONS = {
     inventory_btn: "🎒 Inventory",
     inventory_title: "INVENTORY",
     inventory_mythic_title: "MYTHIC ITEMS",
-    inventory_back_btn: "← Back",
+    inventory_back_btn: "Back",
     inventory_undiscovered: "???",
     inventory_offline_unavailable: "The item system is not available in offline mode yet. Reconnect to access it!",
     inventory_empty_stock: "Depleted",
@@ -469,6 +474,9 @@ const TRANSLATIONS = {
     detecteur_conflict_title: "Detector already active",
     detecteur_conflict_desc: "You can only use one Metal Detector at a time. Wait for the current one to end.",
     detecteur_conflict_ok: "Got it!",
+    plume_max_title: "Limit reached",
+    plume_max_desc: "You can't use more than 2 Light Feathers on the same day.",
+    plume_max_ok: "Got it!",
     use_item_detecteur_result: "Item chances increased by {pct}% for {minutes} minutes!",
     undo_item_confirm_title: "Undo this set?",
     undo_item_confirm_desc: "This set gave you {item}. Undoing it will also remove that item from your inventory.",
@@ -493,7 +501,7 @@ const TRANSLATIONS = {
     item_desc_graine_patience: "Multiplies today's habit XP by ×{mult}.",
     item_desc_talisman_pardon: "Protects a habit's streak counter for a missed day, without ever changing your real history.",
     item_desc_echo_passe: "Brings back a memory from long ago. Unlockable after 30 days of app use.",
-    item_desc_detecteur_metal: "For {minutes} minutes, increases your chances by {pct}% of finding an item from push-up sets. Doesn't affect Mythic items.",
+    item_desc_detecteur_metal: "For {minutes} minutes, increases your chances by {pct}% of finding an item from push-up sets. This item's effect doesn't apply to Mythic items.",
     item_desc_fragment_eternite: "A fragment of something immense — +2000 XP, once in a lifetime.",
     item_desc_toucher_divin: "A permanent golden glow around your XP bar. Can be turned on and off anytime.",
     item_drop_detail_reduction: "Reduces your goal by {pct}%",
@@ -512,6 +520,7 @@ const TRANSLATIONS = {
     rarity_legendaire: "Legendary",
     rarity_mythique: "Mythic",
     active_boost_amulette: "XP Amulet active ×{mult}",
+    active_boost_detecteur: "Metal Detector active +{pct}%",
     use_item_talisman_prompt: "Which habit do you want to protect?",
     use_item_talisman_cannabis: "Drug-free",
     use_item_talisman_cafe: "Caffeine-free",
@@ -538,6 +547,7 @@ const TRANSLATIONS = {
     modal_entries_title: "SETS",
     modal_entries_empty: "No sets that day.",
     celebration_ok: "Thanks, keep going!",
+    item_drop_ok: "Continue",
     rankup_title: "NEW RANK!",
     rankup_desc_prefix: "You are now",
     rankup_new_goal: "New goal",
@@ -2251,10 +2261,12 @@ async function useItemDirect(itemId, instanceId){
     if (itemId === 'echo_passe') alert(t('use_item_echo_none'));
     else if (itemId === 'amulette_xp') $('#amulette-conflict-modal').hidden = false;
     else if (itemId === 'detecteur_metal') $('#detecteur-conflict-modal').hidden = false;
+    else if (itemId === 'plume_legere') $('#plume-max-modal').hidden = false;
   }
 }
 
 let _boostTimerHandle = null;
+let _boostTimerHandleDetecteur = null;
 async function updateActiveBoostDisplay(boosts){
   if (!boosts){
     const data = await api('/api/inventory');
@@ -2276,6 +2288,24 @@ async function updateActiveBoostDisplay(boosts){
     _boostTimerHandle = setInterval(tick, 1000);
   } else {
     row.hidden = true;
+  }
+
+  const rowD = $('#active-boost-row-detecteur');
+  if (_boostTimerHandleDetecteur) clearInterval(_boostTimerHandleDetecteur);
+  if (boosts && boosts.detecteurEndsAt && new Date(boosts.detecteurEndsAt) > new Date()){
+    rowD.hidden = false;
+    $('#active-boost-text-detecteur').textContent = t('active_boost_detecteur', { pct: Math.round((boosts.detecteurBonus || 0) * 100) });
+    const tickD = () => {
+      const remaining = new Date(boosts.detecteurEndsAt) - new Date();
+      if (remaining <= 0){ rowD.hidden = true; clearInterval(_boostTimerHandleDetecteur); return; }
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      $('#active-boost-timer-detecteur').textContent = `${m}:${String(s).padStart(2,'0')}`;
+    };
+    tickD();
+    _boostTimerHandleDetecteur = setInterval(tickD, 1000);
+  } else {
+    rowD.hidden = true;
   }
 }
 
@@ -2393,6 +2423,7 @@ function init(){
   $('#item-detail-use-btn').addEventListener('click', confirmUseSelectedItem);
   $('#amulette-conflict-ok').addEventListener('click', () => { $('#amulette-conflict-modal').hidden = true; });
   $('#detecteur-conflict-ok').addEventListener('click', () => { $('#detecteur-conflict-modal').hidden = true; });
+  $('#plume-max-ok').addEventListener('click', () => { $('#plume-max-modal').hidden = true; });
   $('#inventory-header-btn').addEventListener('click', openInventory);
   $('#app-wordmark').addEventListener('click', () => {
     if (state.echoDoreActive) playEchoDoreMelody();

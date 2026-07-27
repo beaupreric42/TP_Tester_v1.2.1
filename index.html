@@ -103,6 +103,11 @@
       <span class="active-boost-text" id="active-boost-text"></span>
       <span class="active-boost-timer" id="active-boost-timer"></span>
     </div>
+    <div class="active-boost-row" id="active-boost-row-detecteur" hidden>
+      <span class="active-boost-icon">📡</span>
+      <span class="active-boost-text" id="active-boost-text-detecteur"></span>
+      <span class="active-boost-timer" id="active-boost-timer-detecteur"></span>
+    </div>
   </section>
 
   <section class="quickadd card compact">
@@ -177,7 +182,7 @@
     <img src="icons/inventory-mythic-icon-medium.png" alt="" class="inventory-section-icon" style="margin-top:16px;" />
     <div class="section-title" id="mythic-section" data-i18n="inventory_mythic_title" style="margin-top:4px;">OBJETS MYTHIQUES</div>
     <div id="mythic-grid" class="inventory-grid"></div>
-    <button type="button" class="qbtn qbtn-primary" id="inventory-back-btn" data-i18n="inventory_back_btn">← Retour</button>
+    <button type="button" class="qbtn qbtn-primary" id="inventory-back-btn" data-i18n="inventory_back_btn">Retour</button>
   </div>
 </div>
 
@@ -439,7 +444,7 @@
     <div class="trophy-title" id="item-drop-rarity-label" data-i18n="item_drop_title">OBJET TROUVÉ!</div>
     <div class="trophy-desc"><span id="item-drop-name" class="rankup-name">—</span></div>
     <div class="trophy-desc" id="item-drop-desc"></div>
-    <button class="qbtn qbtn-primary" id="item-drop-ok" data-i18n="celebration_ok">Merci, continue!</button>
+    <button class="qbtn qbtn-primary" id="item-drop-ok" data-i18n="item_drop_ok">Continuer</button>
   </div>
 </div>
 
@@ -456,7 +461,7 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="amulette-conflict-modal" hidden>
+<div class="modal-backdrop modal-backdrop-centered" id="amulette-conflict-modal" hidden>
   <div class="modal">
     <div class="trophy-big">🔮</div>
     <div class="trophy-title" data-i18n="amulette_conflict_title">Amulette déjà active</div>
@@ -465,7 +470,7 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="detecteur-conflict-modal" hidden>
+<div class="modal-backdrop modal-backdrop-centered" id="detecteur-conflict-modal" hidden>
   <div class="modal">
     <div class="trophy-big">📡</div>
     <div class="trophy-title" data-i18n="detecteur_conflict_title">Détecteur déjà actif</div>
@@ -474,7 +479,16 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="undo-item-confirm-modal" hidden>
+<div class="modal-backdrop modal-backdrop-centered" id="plume-max-modal" hidden>
+  <div class="modal">
+    <div class="trophy-big">🪶</div>
+    <div class="trophy-title" data-i18n="plume_max_title">Limite atteinte</div>
+    <div class="ms-empty-note" data-i18n="plume_max_desc">Tu ne peux utiliser plus de 2 Plumes légères dans la même journée.</div>
+    <button class="qbtn qbtn-primary" id="plume-max-ok" data-i18n="plume_max_ok">Ok, compris!</button>
+  </div>
+</div>
+
+<div class="modal-backdrop modal-backdrop-centered" id="undo-item-confirm-modal" hidden>
   <div class="modal">
     <div class="trophy-big">⚠️</div>
     <div class="trophy-title" data-i18n="undo_item_confirm_title">Annuler cette série?</div>
